@@ -119,6 +119,13 @@ function Beat({ e }: { e: TranscriptEntry }) {
       </p>
     )
   }
+  if (e.kind === 'void') {
+    return (
+      <p className="beat-void">
+        <span className="beat-void-label">a voice from the void</span> “{e.text}”
+      </p>
+    )
+  }
   return <p className="beat-prose">{e.text}</p>
 }
 

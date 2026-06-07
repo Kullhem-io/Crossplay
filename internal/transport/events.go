@@ -13,6 +13,7 @@ const (
 	EvHello       = "hello"        // sent once on connect
 	EvAgentStatus = "agent_status" // a seat changed state (idle/thinking/streaming)
 	EvAction      = "action"       // an actor (player/monster) declared an action
+	EvVoid        = "void"         // echo of a Voice-from-the-Void utterance
 	EvNarration   = "narration"    // a chunk of narrator prose
 	EvState       = "state"        // full or partial game state
 	EvLog         = "log"          // human-readable engine log line

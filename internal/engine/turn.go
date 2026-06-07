@@ -57,8 +57,15 @@ func (g *Game) runRound(ctx context.Context) error {
 	rctx, cancel := context.WithTimeout(ctx, 150*time.Second)
 	defer cancel()
 
+	// 0. Pull any Voice-from-the-Void utterances; they ride along as in-world
+	// context for this round (never as a delta — see Void()).
+	voidCtx := voidContext(g.drainVoid())
+	if voidCtx != "" {
+		g.remember("A disembodied voice echoed through the world.")
+	}
+
 	// 1. Player declares an action.
-	intent, err := g.playerTurn(rctx)
+	intent, err := g.playerTurn(rctx, voidCtx)
 	if err != nil {
 		return fmt.Errorf("player turn: %w", err)
 	}
@@ -74,7 +81,7 @@ func (g *Game) runRound(ctx context.Context) error {
 	roll := g.d20()
 
 	// 3. DM adjudicates the attempt given the roll.
-	adj, err := g.adjudicate(rctx, intent, roll)
+	adj, err := g.adjudicate(rctx, intent, roll, voidCtx)
 	if err != nil {
 		return fmt.Errorf("adjudicate: %w", err)
 	}
@@ -85,8 +92,8 @@ func (g *Game) runRound(ctx context.Context) error {
 	g.broadcastState()
 	g.remember(pname + " " + adj.Outcome)
 
-	// 5. Narrator dramatizes the resolved beat.
-	if err := g.narrateBeat(rctx, pname, intent, adj); err != nil && rctx.Err() == nil {
+	// 5. Narrator dramatizes the resolved beat (weaving in the void, if any).
+	if err := g.narrateBeat(rctx, pname, intent, adj, voidCtx); err != nil && rctx.Err() == nil {
 		g.errf(fmt.Errorf("narrate: %w", err))
 	}
 
@@ -106,7 +113,7 @@ func (g *Game) bumpRound() {
 }
 
 // playerTurn asks the player seat (Gemma, high temp) for an in-character action.
-func (g *Game) playerTurn(ctx context.Context) (string, error) {
+func (g *Game) playerTurn(ctx context.Context, voidCtx string) (string, error) {
 	st := g.Snapshot()
 	p := st.Player()
 	persona := "an adventurer"
@@ -123,7 +130,7 @@ func (g *Game) playerTurn(ctx context.Context) (string, error) {
 
 	msgs := []agents.Message{
 		{Role: "system", Content: fmt.Sprintf("You are %s — %s. You are playing a text RPG dungeon crawl. Decide your character's next action, in character. Be decisive and specific. State ONLY what you attempt — never narrate the outcome. One or two sentences.", name, persona)},
-		{Role: "user", Content: sceneBrief(st) + "\n" + g.recentContext() + "\nWhat do you do?"},
+		{Role: "user", Content: joinNonEmpty("\n", sceneBrief(st), g.recentContext(), voidCtx, "What do you do?")},
 	}
 	intent, err := g.sched.Complete(ctx, BrainGemma, msgs, agents.CallOpts{
 		Temperature: 1.0, Priority: 50, MaxTokens: 160,
@@ -133,7 +140,7 @@ func (g *Game) playerTurn(ctx context.Context) (string, error) {
 
 // adjudicate has the DM seat (Gemma, low temp) turn the attempt + dice roll into
 // validated mechanical deltas. The engine already rolled; the DM only interprets.
-func (g *Game) adjudicate(ctx context.Context, intent string, roll int) (*schema.Adjudication, error) {
+func (g *Game) adjudicate(ctx context.Context, intent string, roll int, voidCtx string) (*schema.Adjudication, error) {
 	st := g.Snapshot()
 
 	g.seat(SeatDM, BrainGemma, "thinking")
@@ -143,8 +150,12 @@ func (g *Game) adjudicate(ctx context.Context, intent string, roll int) (*schema
 		"A d20 has already been rolled for the attempt: 1 is a critical failure, 10–11 is average, 20 is a critical success. Interpret the roll in context — a high roll succeeds well, a low roll fails or backfires. " +
 		"Target entities by their id. Keep damage proportional (typically 2–10). You may add status effects or grant/consume items freely, but only to the listed entities. Be deterministic and concise. Output only the JSON."
 
-	user := fmt.Sprintf("%s\nThe player (%s) attempts: %s\nAction roll (d20): %d\nDecide the outcome.",
-		sceneBrief(st), playerName(st), intent, roll)
+	user := joinNonEmpty("\n",
+		sceneBrief(st),
+		fmt.Sprintf("The player (%s) attempts: %s", playerName(st), intent),
+		fmt.Sprintf("Action roll (d20): %d", roll),
+		voidCtx,
+		"Decide the outcome.")
 
 	raw, err := g.sched.Complete(ctx, BrainGemma, []agents.Message{
 		{Role: "system", Content: sys},
@@ -163,15 +174,20 @@ func (g *Game) adjudicate(ctx context.Context, intent string, roll int) (*schema
 }
 
 // narrateBeat streams Qwen's prose for an already-resolved beat.
-func (g *Game) narrateBeat(ctx context.Context, pname, intent string, adj *schema.Adjudication) error {
+func (g *Game) narrateBeat(ctx context.Context, pname, intent string, adj *schema.Adjudication, voidCtx string) error {
 	st := g.Snapshot()
 
 	g.seat(SeatNarrator, BrainQwen, "thinking")
 	defer g.seat(SeatNarrator, BrainQwen, "idle")
 
-	sys := "You are the Narrator of a text RPG. Dramatize the resolved beat in vivid prose — second person toward the player, present tense, 1–2 short paragraphs. Stay consistent with the facts given; do not invent damage, deaths, or items beyond what's stated, and do not break character."
-	user := fmt.Sprintf("%s\n%s attempted: %s\nResolved: %s\n%s\nNarrate this beat.",
-		sceneBrief(st), pname, intent, adj.Outcome, adj.Narration)
+	sys := "You are the Narrator of a text RPG. Dramatize the resolved beat in vivid prose — second person toward the player, present tense, 1–2 short paragraphs. Stay consistent with the facts given; do not invent damage, deaths, or items beyond what's stated, and do not break character. If a disembodied voice is mentioned, weave it in as an eerie phenomenon without acknowledging its source."
+	user := joinNonEmpty("\n",
+		sceneBrief(st),
+		fmt.Sprintf("%s attempted: %s", pname, intent),
+		"Resolved: "+adj.Outcome,
+		adj.Narration,
+		voidCtx,
+		"Narrate this beat.")
 
 	ch, err := g.sched.Stream(ctx, BrainQwen, []agents.Message{
 		{Role: "system", Content: sys},
@@ -199,4 +215,16 @@ func playerName(st *schema.GameState) string {
 		return p.Name
 	}
 	return "the player"
+}
+
+// joinNonEmpty joins only the non-blank parts, so optional context (like the
+// void) cleanly drops out when absent.
+func joinNonEmpty(sep string, parts ...string) string {
+	var kept []string
+	for _, p := range parts {
+		if strings.TrimSpace(p) != "" {
+			kept = append(kept, p)
+		}
+	}
+	return strings.Join(kept, sep)
 }

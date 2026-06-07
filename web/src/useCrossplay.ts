@@ -77,6 +77,15 @@ export function useCrossplay(): CrossplayState {
             ])
             break
           }
+          case 'void': {
+            const p = ev.payload as { text?: string }
+            if (p.text)
+              setTranscript((t) => [
+                ...t,
+                { id: nextId.current++, kind: 'void', text: p.text! },
+              ])
+            break
+          }
           case 'narration': {
             const p = ev.payload as { token?: string }
             if (!p.token) break

@@ -14,7 +14,7 @@ export interface AgentStatus {
 
 // Server -> client envelope.
 export interface ServerEvent {
-  type: 'hello' | 'agent_status' | 'action' | 'narration' | 'state' | 'log' | 'error'
+  type: 'hello' | 'agent_status' | 'action' | 'void' | 'narration' | 'state' | 'log' | 'error'
   payload?: unknown
 }
 
@@ -24,10 +24,10 @@ export interface ActionPayload {
   text: string
 }
 
-// A rendered transcript entry — actions and prose interleaved in order.
+// A rendered transcript entry — actions, prose, and void whispers interleaved.
 export interface TranscriptEntry {
   id: number
-  kind: 'action' | 'prose'
+  kind: 'action' | 'prose' | 'void'
   name?: string
   text: string
 }

@@ -26,9 +26,10 @@ const (
 
 // Game holds the canonical state and orchestrates seats. One per process for now.
 type Game struct {
-	mu     sync.Mutex
-	state  *schema.GameState
-	recent []string // rolling beat summaries for model continuity
+	mu          sync.Mutex
+	state       *schema.GameState
+	recent      []string // rolling beat summaries for model continuity
+	voidPending []string // queued Voice-from-the-Void utterances
 
 	sched *agents.Scheduler
 	emit  func(transport.Event)
