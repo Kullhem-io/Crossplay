@@ -4,6 +4,7 @@ import type {
   AgentStatus,
   ClientMessage,
   GameState,
+  MechanicsPayload,
   ServerEvent,
   SeatStatus,
   TranscriptEntry,
@@ -73,7 +74,22 @@ export function useCrossplay(): CrossplayState {
             const a = ev.payload as ActionPayload
             setTranscript((t) => [
               ...t,
-              { id: nextId.current++, kind: 'action', name: a.name, text: a.text },
+              { id: nextId.current++, kind: 'action', seat: a.seat, name: a.name, text: a.text },
+            ])
+            break
+          }
+          case 'mechanics': {
+            const m = ev.payload as MechanicsPayload
+            setTranscript((t) => [
+              ...t,
+              {
+                id: nextId.current++,
+                kind: 'mechanics',
+                seat: m.seat,
+                name: m.name,
+                roll: m.roll,
+                changes: m.changes ?? [],
+              },
             ])
             break
           }
@@ -89,12 +105,13 @@ export function useCrossplay(): CrossplayState {
           case 'narration': {
             const p = ev.payload as { token?: string }
             if (!p.token) break
+            const tok = p.token
             setTranscript((t) => {
               const last = t[t.length - 1]
               if (last && last.kind === 'prose') {
-                return [...t.slice(0, -1), { ...last, text: last.text + p.token }]
+                return [...t.slice(0, -1), { ...last, text: (last.text ?? '') + tok }]
               }
-              return [...t, { id: nextId.current++, kind: 'prose', text: p.token! }]
+              return [...t, { id: nextId.current++, kind: 'prose', text: tok }]
             })
             break
           }

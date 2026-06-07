@@ -2,6 +2,45 @@
 // Code generated from internal/schema by tygo. DO NOT EDIT.
 
 //////////
+// source: delta.go
+
+/**
+ * DeltaType enumerates the mechanical changes the DM may apply to the ledger.
+ * The set is deliberately small; novel *content* (new status names, new items)
+ * is unbounded, but every change funnels through one of these verbs so the
+ * engine can keep the books balanced.
+ */
+export type DeltaType = string;
+export const DeltaDamage: DeltaType = "damage"; // target loses HP
+export const DeltaHeal: DeltaType = "heal"; // target gains HP (if alive)
+export const DeltaStatus: DeltaType = "status"; // add (or remove) a status effect
+export const DeltaItemAdd: DeltaType = "item_add"; // grant an item to a target
+export const DeltaItemRemove: DeltaType = "item_remove"; // consume/drop an item
+export const DeltaXP: DeltaType = "xp"; // award XP (engine handles level-up)
+/**
+ * Delta is one proposed change. Target is an entity id (preferred) or name.
+ */
+export interface Delta {
+  type: DeltaType;
+  target: string;
+  amount?: number /* int */; // for damage/heal
+  status?: string; // for status
+  remove?: boolean; // status: remove instead of add
+  item?: string; // for item_*
+  qty?: number /* int */; // for item_* (default 1)
+  note?: string; // optional rationale
+}
+/**
+ * Adjudication is the DM's structured ruling for one action. The engine has
+ * already rolled the dice; the DM interprets the roll into concrete effects.
+ */
+export interface Adjudication {
+  outcome: string; // one factual sentence: what happened
+  deltas: Delta[]; // mechanical changes to apply
+  narration: string; // a hint for the narrator to dramatize
+}
+
+//////////
 // source: schema.go
 /*
 Package schema defines the authoritative game ledger types. These are the
@@ -51,6 +90,9 @@ export interface Entity {
   id: string;
   name: string;
   kind: EntityKind;
+  class: string; // archetype, e.g. "Rogue", "Brute"
+  level: number /* int */;
+  xp: number /* int */;
   hp: number /* int */;
   maxHp: number /* int */;
   alive: boolean;
@@ -81,6 +123,7 @@ export interface WorldgenResult {
 }
 export interface WorldgenPlayer {
   name: string;
+  class: string;
   desc: string;
   maxHp: number /* int */;
   inventory: Item[];

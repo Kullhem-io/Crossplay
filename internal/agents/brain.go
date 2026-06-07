@@ -1,5 +1,5 @@
-// Package agents defines the Brain abstraction — a model connection with a
-// concurrency budget — and a scheduler that enforces those budgets with
+// Package agents defines the Brain abstraction, a model connection with a
+// concurrency budget, and a scheduler that enforces those budgets with
 // priority. Seats (DM, narrator, players) are bound to brains elsewhere; a
 // brain knows nothing about the game.
 package agents

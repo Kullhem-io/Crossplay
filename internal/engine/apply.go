@@ -24,6 +24,9 @@ func (g *Game) applyAdjudication(adj *schema.Adjudication) []string {
 		}
 	}
 
+	// Leveling is engine-owned (thresholds), like death below.
+	logs = append(logs, g.levelUps()...)
+
 	// Death + game-over are engine-owned consequences, never trusted to the model.
 	for i := range g.state.Entities {
 		e := &g.state.Entities[i]
@@ -104,8 +107,35 @@ func (g *Game) applyDelta(d schema.Delta) string {
 			return fmt.Sprintf("%s loses %s×%d.", e.Name, name, qty)
 		}
 		return ""
+	case schema.DeltaXP:
+		amt := clampNonNeg(d.Amount)
+		if amt == 0 {
+			return ""
+		}
+		e.XP += amt
+		return fmt.Sprintf("%s gains %d XP.", e.Name, amt)
 	}
 	return ""
+}
+
+// levelUps advances any entity whose XP crossed its threshold. Leveling is an
+// engine-owned consequence (like death), never trusted to the model. Assumes
+// g.mu held.
+func (g *Game) levelUps() []string {
+	var logs []string
+	for i := range g.state.Entities {
+		e := &g.state.Entities[i]
+		for e.Level >= 1 && e.XP >= e.XPForNext() {
+			e.XP -= e.XPForNext()
+			e.Level++
+			e.MaxHP += 4
+			if e.Alive {
+				e.HP += 4 // the surge of a new level
+			}
+			logs = append(logs, fmt.Sprintf("%s reaches level %d!", e.Name, e.Level))
+		}
+	}
+	return logs
 }
 
 // resolveTarget matches by id first, then case-insensitive name. Assumes lock.

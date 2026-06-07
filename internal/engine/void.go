@@ -11,7 +11,7 @@ import (
 // Void records a Voice-from-the-Void utterance. It does NOT act on its own:
 // the text is queued and injected as in-world *context* into the next round's
 // player, DM, and narrator prompts. This is the engine-level enforcement of
-// "advisory only" — void text never becomes a delta or a control command, so
+// "advisory only", void text never becomes a delta or a control command, so
 // even "everyone dies" can at most unsettle the scene, never end it.
 func (g *Game) Void(ctx context.Context, text string) {
 	text = strings.TrimSpace(text)

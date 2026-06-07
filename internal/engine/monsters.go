@@ -15,10 +15,11 @@ import (
 type monsterResult struct {
 	name string
 	id   string
+	roll int
 	adj  *schema.Adjudication
 }
 
-// adjudicateMonsters has the DM decide every living monster's action — each an
+// adjudicateMonsters has the DM decide every living monster's action, each an
 // independent focused call running concurrently across the two Gemma slots
 // (scheduler-capped at 2). Pure: it only queries models and returns results, so
 // it can run in parallel with Qwen narration of the player's beat. Returns nil
@@ -41,7 +42,7 @@ func (g *Game) adjudicateMonsters(ctx context.Context) []*monsterResult {
 			if err != nil {
 				return // one monster failing shouldn't abort the round
 			}
-			results[i] = &monsterResult{name: m.Name, id: m.ID, adj: adj}
+			results[i] = &monsterResult{name: m.Name, id: m.ID, roll: roll, adj: adj}
 		}()
 	}
 	wg.Wait()
@@ -59,7 +60,9 @@ func (g *Game) resolveMonsters(ctx context.Context, results []*monsterResult) {
 		}
 		g.emit(transport.Event{Type: transport.EvAction,
 			Payload: transport.Action{Seat: r.id, Name: r.name, Text: r.adj.Outcome}})
-		g.applyAdjudication(r.adj)
+		changes := g.applyAdjudication(r.adj)
+		g.emit(transport.Event{Type: transport.EvMechanics,
+			Payload: transport.Mechanics{Seat: r.id, Name: r.name, Roll: r.roll, Changes: changes}})
 		outcomes = append(outcomes, r.name+": "+r.adj.Outcome)
 	}
 	if len(outcomes) == 0 {
@@ -77,8 +80,8 @@ func (g *Game) resolveMonsters(ctx context.Context, results []*monsterResult) {
 func (g *Game) monsterTurn(ctx context.Context, m schema.Entity, roll int) (*schema.Adjudication, error) {
 	st := g.Snapshot()
 	sys := "You are the Game System controlling a single monster in a text RPG. Decide what THIS monster does on its turn and the mechanical result, as JSON deltas. " +
-		"A d20 has been rolled for it: 1 is a critical failure, 10–11 average, 20 a critical success. The monster acts according to its nature, usually against the player. " +
-		"Target entities by id. Keep damage proportional (typically 2–10). Output only the JSON."
+		"A d20 has been rolled for it: 1 is a critical failure, 10 to 11 average, 20 a critical success. The monster acts according to its nature, usually against the player. " +
+		"Target entities by id. Keep damage proportional (typically 2 to 10). Output only the JSON."
 	user := fmt.Sprintf("%s\nIt is the turn of the monster: %s (id %s).\nIts action roll (d20): %d\nDecide its action and the outcome.",
 		sceneBrief(st), m.Name, m.ID, roll)
 
@@ -104,26 +107,10 @@ func (g *Game) narrateMonsters(ctx context.Context, outcomes []string) error {
 	g.seat(SeatNarrator, BrainQwen, "thinking")
 	defer g.seat(SeatNarrator, BrainQwen, "idle")
 
-	sys := "You are the Narrator of a text RPG. Dramatize the enemies' turn in vivid prose — second person toward the player, present tense, 1–2 short paragraphs. Stay consistent with the stated outcomes; invent no extra damage, deaths, or items, and do not break character."
+	sys := "You are the Narrator of a text RPG. Dramatize the enemies' turn in vivid prose, second person toward the player, present tense, 1 to 2 short paragraphs. Stay consistent with the stated outcomes; invent no extra damage, deaths, or items, and do not break character."
 	user := fmt.Sprintf("%s\nOn the enemies' turn:\n- %s\nNarrate this.", sceneBrief(st), strings.Join(outcomes, "\n- "))
-
-	ch, err := g.sched.Stream(ctx, BrainQwen, []agents.Message{
+	return g.streamNarration(ctx, []agents.Message{
 		{Role: "system", Content: sys},
 		{Role: "user", Content: user},
-	}, agents.CallOpts{Temperature: 1.0, Priority: 10})
-	if err != nil {
-		return err
-	}
-	first := true
-	for t := range ch {
-		if t.Err != nil {
-			return t.Err
-		}
-		if first {
-			g.seat(SeatNarrator, BrainQwen, "streaming")
-			first = false
-		}
-		g.narrate(t.Text)
-	}
-	return nil
+	})
 }

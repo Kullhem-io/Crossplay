@@ -39,18 +39,29 @@ type Location struct {
 	Description string `json:"description"`
 }
 
-// Entity is any actor on the ledger — the player and monsters share this type;
+// Entity is any actor on the ledger, the player and monsters share this type;
 // only Kind (and thus who decides their actions) differs.
 type Entity struct {
 	ID        string     `json:"id"`
 	Name      string     `json:"name"`
 	Kind      EntityKind `json:"kind"`
+	Class     string     `json:"class"` // archetype, e.g. "Rogue", "Brute"
+	Level     int        `json:"level"`
+	XP        int        `json:"xp"`
 	HP        int        `json:"hp"`
 	MaxHP     int        `json:"maxHp"`
 	Alive     bool       `json:"alive"`
 	Status    []string   `json:"status"`
 	Inventory []Item     `json:"inventory"`
 	Desc      string     `json:"desc"`
+}
+
+// XPForNext is the XP needed to advance from the entity's current level.
+func (e *Entity) XPForNext() int {
+	if e.Level < 1 {
+		return 10
+	}
+	return e.Level * 10
 }
 
 // Item is a stackable inventory entry.

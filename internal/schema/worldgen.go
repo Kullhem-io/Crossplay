@@ -2,7 +2,7 @@ package schema
 
 // WorldgenResult is what the Qwen worldgen call returns (grammar-constrained
 // by WorldgenSchema). The engine validates it and builds the canonical
-// GameState from it — models never construct the ledger directly.
+// GameState from it, models never construct the ledger directly.
 type WorldgenResult struct {
 	Location Location          `json:"location"`
 	Player   WorldgenPlayer    `json:"player"`
@@ -11,6 +11,7 @@ type WorldgenResult struct {
 
 type WorldgenPlayer struct {
 	Name      string `json:"name"`
+	Class     string `json:"class"`
 	Desc      string `json:"desc"`
 	MaxHP     int    `json:"maxHp"`
 	Inventory []Item `json:"inventory"`
@@ -42,6 +43,7 @@ var WorldgenSchema = []byte(`{
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
+        "class": { "type": "string" },
         "desc": { "type": "string" },
         "maxHp": { "type": "integer", "minimum": 1 },
         "inventory": {
@@ -57,7 +59,7 @@ var WorldgenSchema = []byte(`{
           }
         }
       },
-      "required": ["name", "desc", "maxHp", "inventory"]
+      "required": ["name", "class", "desc", "maxHp", "inventory"]
     },
     "monsters": {
       "type": "array",

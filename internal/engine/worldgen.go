@@ -44,7 +44,7 @@ func (g *Game) Start(ctx context.Context, topic string) error {
 
 func (g *Game) worldgen(ctx context.Context, topic string) (*schema.WorldgenResult, error) {
 	msgs := []agents.Message{
-		{Role: "system", Content: "You design the starting state of a text RPG. Given a world topic, invent a vivid starting location, one player character fit for it, and 1–3 monsters or threats present in that location. Keep HP values in the 8–30 range. Output only the requested JSON."},
+		{Role: "system", Content: "You design the starting state of a text RPG. Given a world topic, invent a vivid starting location, one player character fit for it, and 1 to 3 monsters or threats present in that location. Keep HP values in the 8 to 30 range. Output only the requested JSON."},
 		{Role: "user", Content: "World topic: " + topic},
 	}
 	raw, err := g.sched.Complete(ctx, BrainQwen, msgs, agents.CallOpts{
@@ -79,6 +79,9 @@ func buildState(topic string, r *schema.WorldgenResult) *schema.GameState {
 		ID:        SeatPlayer1,
 		Name:      orDefault(r.Player.Name, "Adventurer"),
 		Kind:      schema.KindPlayer,
+		Class:     orDefault(r.Player.Class, "Adventurer"),
+		Level:     1,
+		XP:        0,
 		MaxHP:     clampHP(r.Player.MaxHP),
 		Alive:     true,
 		Status:    []string{},
@@ -96,6 +99,7 @@ func buildState(topic string, r *schema.WorldgenResult) *schema.GameState {
 			ID:        fmt.Sprintf("monster-%d", i+1),
 			Name:      orDefault(m.Name, fmt.Sprintf("Creature %d", i+1)),
 			Kind:      schema.KindMonster,
+			Level:     1,
 			MaxHP:     clampHP(m.MaxHP),
 			Alive:     true,
 			Status:    []string{},

@@ -13,6 +13,7 @@ const (
 	EvHello       = "hello"        // sent once on connect
 	EvAgentStatus = "agent_status" // a seat changed state (idle/thinking/streaming)
 	EvAction      = "action"       // an actor (player/monster) declared an action
+	EvMechanics   = "mechanics"    // dice roll + applied ledger changes for a beat
 	EvVoid        = "void"         // echo of a Voice-from-the-Void utterance
 	EvNarration   = "narration"    // a chunk of narrator prose
 	EvState       = "state"        // full or partial game state
@@ -25,6 +26,15 @@ type Action struct {
 	Seat string `json:"seat"`
 	Name string `json:"name"`
 	Text string `json:"text"`
+}
+
+// Mechanics is the payload for EvMechanics, the dice roll and the engine's
+// applied changes for one actor's beat, surfaced for game-feel transparency.
+type Mechanics struct {
+	Seat    string   `json:"seat"`
+	Name    string   `json:"name"`
+	Roll    int      `json:"roll"`
+	Changes []string `json:"changes"`
 }
 
 // Seat status values surfaced in the agent lanes.

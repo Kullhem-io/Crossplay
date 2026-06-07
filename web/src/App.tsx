@@ -123,9 +123,24 @@ export default function App() {
 
 function Beat({ e }: { e: TranscriptEntry }) {
   if (e.kind === 'action') {
+    const monster = e.seat?.startsWith('monster')
     return (
-      <p className="beat-action">
+      <p className={`beat-action ${monster ? 'beat-action-monster' : 'beat-action-player'}`}>
         <span className="beat-name">{e.name}</span> {e.text}
+      </p>
+    )
+  }
+  if (e.kind === 'mechanics') {
+    if (!e.roll && (!e.changes || e.changes.length === 0)) return null
+    return (
+      <p className="beat-mech">
+        <span className="mech-roll">🎲 {e.roll}</span>
+        {e.changes && e.changes.length > 0 && <span className="mech-sep">·</span>}
+        {e.changes?.map((c, i) => (
+          <span key={i} className="mech-change">
+            {c}
+          </span>
+        ))}
       </p>
     )
   }
@@ -155,6 +170,10 @@ function Lane({ label, brain, status }: { label: string; brain: string; status?:
 
 function EntityCard({ e }: { e: Entity }) {
   const pct = e.maxHp > 0 ? Math.max(0, Math.round((e.hp / e.maxHp) * 100)) : 0
+  const isPlayer = e.kind === 'player'
+  const xpNext = e.level >= 1 ? e.level * 10 : 10
+  const xpPct = Math.max(0, Math.min(100, Math.round((e.xp / xpNext) * 100)))
+  const subtitle = [e.class, e.level ? `Lv ${e.level}` : ''].filter(Boolean).join(' · ')
   return (
     <div className={`ent ent-${e.kind} ${e.alive ? '' : 'ent-dead'}`}>
       <div className="ent-head">
@@ -163,12 +182,22 @@ function EntityCard({ e }: { e: Entity }) {
           {e.hp}/{e.maxHp}
         </span>
       </div>
+      {subtitle && <div className="ent-sub">{subtitle}</div>}
       <div className="hpbar">
         <div className="hpfill" style={{ width: `${pct}%` }} />
       </div>
-      {e.status.length > 0 && (
-        <div className="ent-status">{e.status.join(', ')}</div>
+      {isPlayer && (
+        <>
+          <div className="xpbar">
+            <div className="xpfill" style={{ width: `${xpPct}%` }} />
+          </div>
+          <div className="ent-xp">
+            XP {e.xp}/{xpNext}
+          </div>
+        </>
       )}
+      {e.desc && <div className="ent-desc">{e.desc}</div>}
+      {e.status.length > 0 && <div className="ent-status">{e.status.join(', ')}</div>}
     </div>
   )
 }

@@ -101,6 +101,11 @@
 .ent-head { display: flex; justify-content: space-between; align-items: baseline; }
 .ent-name { font-weight: 600; font-size: 0.92rem; }
 .ent-hp { font-size: 0.74rem; color: #8a93a8; font-family: ui-monospace, monospace; }
+.ent-sub {
+  font-size: 0.72rem;
+  color: #8a93a8;
+  margin-top: 1px;
+}
 .hpbar {
   margin-top: 6px;
   height: 6px;
@@ -114,6 +119,31 @@
   transition: width 0.5s ease;
 }
 .ent-monster .hpfill { background: linear-gradient(90deg, #e7746e, #c9544c); }
+.xpbar {
+  margin-top: 4px;
+  height: 3px;
+  background: #0a0e17;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.xpfill {
+  height: 100%;
+  background: #6e7ce7;
+  transition: width 0.5s ease;
+}
+.ent-xp {
+  font-size: 0.64rem;
+  color: #6a73a8;
+  font-family: ui-monospace, monospace;
+  margin-top: 2px;
+}
+.ent-desc {
+  margin-top: 6px;
+  font-size: 0.74rem;
+  color: #9aa3b8;
+  line-height: 1.4;
+  font-style: italic;
+}
 .ent-status {
   margin-top: 6px;
   font-size: 0.7rem;
@@ -141,13 +171,44 @@
 }
 .beat-prose { white-space: pre-wrap; margin: 0 0 14px; }
 .beat-action {
-  margin: 0 0 14px;
+  margin: 0 0 6px;
   padding-left: 12px;
   border-left: 2px solid #6e7ce7;
   color: #b9c0d4;
   font-style: italic;
 }
-.beat-name { color: #6ee7a8; font-style: normal; font-weight: 600; }
+.beat-action-player { border-left-color: #6ee7a8; }
+.beat-action-monster { border-left-color: #e7746e; }
+.beat-action-player .beat-name { color: #6ee7a8; }
+.beat-action-monster .beat-name { color: #e7867f; }
+.beat-name { font-style: normal; font-weight: 600; }
+
+/* Mechanics chip: dice roll + applied changes */
+.beat-mech {
+  margin: 0 0 14px;
+  padding-left: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-family: ui-monospace, monospace;
+  font-size: 0.74rem;
+}
+.mech-roll {
+  color: #e7c86e;
+  background: rgba(231, 200, 110, 0.12);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.mech-sep { color: #444c5e; }
+.mech-change {
+  color: #9aa3b8;
+  background: #0d111a;
+  border: 1px solid #1c2230;
+  padding: 1px 7px;
+  border-radius: 6px;
+}
 .gameover {
   display: flex;
   align-items: center;

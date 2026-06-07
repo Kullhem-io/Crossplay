@@ -12,6 +12,7 @@ const (
 	DeltaStatus     DeltaType = "status"      // add (or remove) a status effect
 	DeltaItemAdd    DeltaType = "item_add"    // grant an item to a target
 	DeltaItemRemove DeltaType = "item_remove" // consume/drop an item
+	DeltaXP         DeltaType = "xp"          // award XP (engine handles level-up)
 )
 
 // Delta is one proposed change. Target is an entity id (preferred) or name.
@@ -47,7 +48,7 @@ var AdjudicationSchema = []byte(`{
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "type": { "type": "string", "enum": ["damage", "heal", "status", "item_add", "item_remove"] },
+          "type": { "type": "string", "enum": ["damage", "heal", "status", "item_add", "item_remove", "xp"] },
           "target": { "type": "string" },
           "amount": { "type": "integer" },
           "status": { "type": "string" },

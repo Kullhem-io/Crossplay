@@ -1,5 +1,5 @@
 // Wire protocol shared with the Go backend (internal/transport/events.go).
-// Ledger types are generated from Go — see src/gen/schema.ts (make gen-types).
+// Ledger types are generated from Go, see src/gen/schema.ts (make gen-types).
 
 export type { GameState, Entity, Location, Item, Phase, EntityKind } from './gen/schema'
 
@@ -14,7 +14,16 @@ export interface AgentStatus {
 
 // Server -> client envelope.
 export interface ServerEvent {
-  type: 'hello' | 'agent_status' | 'action' | 'void' | 'narration' | 'state' | 'log' | 'error'
+  type:
+    | 'hello'
+    | 'agent_status'
+    | 'action'
+    | 'mechanics'
+    | 'void'
+    | 'narration'
+    | 'state'
+    | 'log'
+    | 'error'
   payload?: unknown
 }
 
@@ -24,12 +33,23 @@ export interface ActionPayload {
   text: string
 }
 
-// A rendered transcript entry — actions, prose, and void whispers interleaved.
+export interface MechanicsPayload {
+  seat: string
+  name: string
+  roll: number
+  changes: string[]
+}
+
+// A rendered transcript entry, actions, mechanics, prose, and void whispers
+// interleaved in order.
 export interface TranscriptEntry {
   id: number
-  kind: 'action' | 'prose' | 'void'
+  kind: 'action' | 'prose' | 'void' | 'mechanics'
+  seat?: string
   name?: string
-  text: string
+  text?: string
+  roll?: number
+  changes?: string[]
 }
 
 // Client -> server envelope.
