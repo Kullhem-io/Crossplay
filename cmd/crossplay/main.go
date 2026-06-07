@@ -23,7 +23,7 @@ func envOr(key, def string) string {
 }
 
 func main() {
-	port := envOr("PORT", "7777")
+	port := envOr("PORT", "3001")
 
 	sched := agents.NewScheduler()
 	// Qwen: serial (1 in flight). Gemma: two parallel slots.

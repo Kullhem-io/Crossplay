@@ -15,7 +15,7 @@ Go is installed at `/usr/local/go/bin` but the non-interactive tool shell does *
 ```bash
 export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
 
-go run ./cmd/crossplay      # backend on :7777 (PORT to override)
+go run ./cmd/crossplay      # backend on :3001 (PORT to override)
 go build ./...              # compile everything
 go vet ./...               # static checks
 ```
@@ -25,7 +25,7 @@ Front end:
 ```bash
 cd web
 npm install
-npm run dev                # Vite dev server, proxies /ws + /healthz to :7777
+npm run dev                # Vite dev server, proxies /ws + /healthz to :3001
 npm run build              # tsc -b && vite build -> web/dist (served by Go if present)
 ```
 

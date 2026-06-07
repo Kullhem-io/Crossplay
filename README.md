@@ -24,13 +24,13 @@ See [CLAUDE.md](CLAUDE.md) for the full architecture.
 Backend (Go):
 
 ```bash
-go run ./cmd/crossplay        # serves on :7777 (PORT to override)
+go run ./cmd/crossplay        # serves on :3001 (PORT to override)
 ```
 
 Front end (Vite, separate terminal):
 
 ```bash
-cd web && npm install && npm run dev   # proxies /ws + /healthz to :7777
+cd web && npm install && npm run dev   # proxies /ws + /healthz to :3001
 ```
 
 Then open the Vite dev URL. For a single-process build, `cd web && npm run build`
