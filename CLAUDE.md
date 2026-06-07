@@ -69,12 +69,14 @@ web/src/               React SPA: App (lanes/stage/void), useCrossplay (WS hook)
 
 `web/src/protocol.ts` is hand-maintained for now; it will be **generated from the Go `internal/schema` types** (e.g. tygo) so the wire format has one source of truth.
 
-## Build status (milestones)
+## Build status (milestones) — thin vertical slice complete
 
-- **M0 ✅** Scaffold: Go WS hub + event protocol, React shell with 3 agent lanes / topic input / Void box, end-to-end round-trip.
-- **M1** Brain interface + per-brain scheduler + qwen-local & gemma-local adapters.
-- **M2** Worldgen from topic → validated GameState → rendered scene (+ Go→TS codegen).
-- **M3** Turn loop core (player → DM → dice → narration).
-- **M4** DM-driven monsters (parallel focused calls).
-- **M5** Voice from the Void.
-- **M6** Agent-lane polish + visible speculative pre-build.
+- **M0 ✅** Scaffold: Go WS hub + event protocol, React shell, end-to-end round-trip.
+- **M1 ✅** Brain interface + per-brain priority scheduler + qwen-local/gemma-local adapters (streaming, ctx-cancel, JSON-schema).
+- **M2 ✅** Worldgen from topic → validated GameState → rendered scene + HP bars; Go→TS codegen (tygo).
+- **M3 ✅** Autonomous turn loop: player intent → seeded d20 → DM adjudication (deltas) → engine applies → Qwen narrates.
+- **M4 ✅** DM-driven monsters as parallel focused calls (2 Gemma slots).
+- **M5 ✅** Voice from the Void: queued utterances injected as in-world context into the next round; advisory-only (never a delta).
+- **M6 ✅** Agent-lane polish (round counter, game-over overlay) + pipelining: the player-beat narration (Qwen) runs concurrently with monster adjudication (Gemma) so both lanes light at once.
+
+The game currently plays itself autonomously (player is a Gemma seat; human spectates + whispers). Round cadence is bounded by Qwen narration (serial). Natural next iterations: location/room transitions + speculative pre-build of the next area, human-as-player binding, multiple player seats, replay via stored seed, persistence.

@@ -18,6 +18,12 @@
   font-size: 1.6rem;
   letter-spacing: 0.06em;
 }
+.topmeta { display: flex; align-items: center; gap: 10px; }
+.round {
+  font-size: 0.74rem;
+  color: #8a93a8;
+  font-family: ui-monospace, monospace;
+}
 .conn {
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -142,6 +148,18 @@
   font-style: italic;
 }
 .beat-name { color: #6ee7a8; font-style: normal; font-weight: 600; }
+.gameover {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #1a1015;
+  border: 1px solid #5a2230;
+  border-radius: 12px;
+  padding: 14px 18px;
+  color: #e7a0a0;
+}
+.gameover button { background: #e7746e; }
 .beat-void {
   margin: 0 0 14px;
   padding: 8px 12px;

@@ -12,24 +12,23 @@ import (
 	"github.com/Kullhem-io/Crossplay/internal/transport"
 )
 
-// monsterPhase resolves every living monster's action for the round. The DM
-// seat decides each one as an independent focused call; with the player idle,
-// these run concurrently across the two Gemma slots (the scheduler caps it at
-// 2 in flight). Results are applied sequentially to avoid racing the ledger,
-// then narrated as a single beat (Qwen is serial).
-func (g *Game) monsterPhase(ctx context.Context) {
+type monsterResult struct {
+	name string
+	id   string
+	adj  *schema.Adjudication
+}
+
+// adjudicateMonsters has the DM decide every living monster's action — each an
+// independent focused call running concurrently across the two Gemma slots
+// (scheduler-capped at 2). Pure: it only queries models and returns results, so
+// it can run in parallel with Qwen narration of the player's beat. Returns nil
+// if there are no living monsters.
+func (g *Game) adjudicateMonsters(ctx context.Context) []*monsterResult {
 	living := g.Snapshot().LivingMonsters()
 	if len(living) == 0 {
-		return
+		return nil
 	}
-
-	type res struct {
-		name string
-		id   string
-		adj  *schema.Adjudication
-	}
-	results := make([]*res, len(living))
-
+	results := make([]*monsterResult, len(living))
 	g.seat(SeatDM, BrainGemma, "thinking")
 	var wg sync.WaitGroup
 	for i, mp := range living {
@@ -40,14 +39,19 @@ func (g *Game) monsterPhase(ctx context.Context) {
 			roll := g.d20()
 			adj, err := g.monsterTurn(ctx, m, roll)
 			if err != nil {
-				return // a single monster failing shouldn't abort the round
+				return // one monster failing shouldn't abort the round
 			}
-			results[i] = &res{name: m.Name, id: m.ID, adj: adj}
+			results[i] = &monsterResult{name: m.Name, id: m.ID, adj: adj}
 		}()
 	}
 	wg.Wait()
 	g.seat(SeatDM, BrainGemma, "idle")
+	return results
+}
 
+// resolveMonsters applies the (already-computed) monster rulings to the ledger
+// and narrates the enemy turn as one streamed beat.
+func (g *Game) resolveMonsters(ctx context.Context, results []*monsterResult) {
 	var outcomes []string
 	for _, r := range results {
 		if r == nil {

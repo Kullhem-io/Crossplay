@@ -92,14 +92,30 @@ func (g *Game) runRound(ctx context.Context) error {
 	g.broadcastState()
 	g.remember(pname + " " + adj.Outcome)
 
-	// 5. Narrator dramatizes the resolved beat (weaving in the void, if any).
+	// 5 + 6 pipelined: the narrator (Qwen) dramatizes the player's beat while the
+	// DM (Gemma) concurrently adjudicates the monsters — different brains, so both
+	// lanes light up at once and the round is shorter. Then resolve the monsters.
+	stillPlaying := func() bool {
+		s := g.Snapshot()
+		return s != nil && s.Phase == schema.PhasePlaying
+	}
+
+	var monsters []*monsterResult
+	monstersDone := make(chan struct{})
+	go func() {
+		defer close(monstersDone)
+		if stillPlaying() {
+			monsters = g.adjudicateMonsters(rctx)
+		}
+	}()
+
 	if err := g.narrateBeat(rctx, pname, intent, adj, voidCtx); err != nil && rctx.Err() == nil {
 		g.errf(fmt.Errorf("narrate: %w", err))
 	}
 
-	// 6. Enemies' turn — DM drives living monsters (skipped if the player just died).
-	if s := g.Snapshot(); s != nil && s.Phase == schema.PhasePlaying {
-		g.monsterPhase(rctx)
+	<-monstersDone
+	if len(monsters) > 0 && stillPlaying() {
+		g.resolveMonsters(rctx, monsters)
 	}
 	return nil
 }

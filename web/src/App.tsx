@@ -33,7 +33,10 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <h1>Crossplay</h1>
-        <span className={`conn conn-${conn}`}>{conn}</span>
+        <div className="topmeta">
+          {started && <span className="round">Round {state!.round}</span>}
+          <span className={`conn conn-${conn}`}>{conn}</span>
+        </div>
       </header>
 
       <section className="lanes">
@@ -75,6 +78,12 @@ export default function App() {
                 transcript.map((e) => <Beat key={e.id} e={e} />)
               )}
             </article>
+            {state!.phase === 'game_over' && (
+              <div className="gameover">
+                <span>The adventure has ended.</span>
+                <button onClick={() => location.reload()}>New world</button>
+              </div>
+            )}
           </div>
         )}
 
@@ -101,9 +110,10 @@ export default function App() {
           value={voidText}
           onChange={(e) => setVoidText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && onVoid()}
-          placeholder="Speak into the void…"
+          placeholder={started ? 'Speak into the void…' : 'Begin a world to speak into the void'}
+          disabled={!started || state!.phase === 'game_over'}
         />
-        <button onClick={onVoid} disabled={conn !== 'open'}>
+        <button onClick={onVoid} disabled={conn !== 'open' || !started || state!.phase === 'game_over'}>
           Whisper
         </button>
       </footer>
