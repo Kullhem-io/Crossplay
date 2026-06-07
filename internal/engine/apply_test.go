@@ -94,6 +94,30 @@ func TestFinalizeVictoryWhenAllMonstersDead(t *testing.T) {
 	}
 }
 
+func TestRemovalStatusTakesFoeOutButNotPlayer(t *testing.T) {
+	g := newTestGame(player(20, 20), monster("monster-1", "Goblin", 8, 12))
+	// DM "defeats" the foe with a status while it still has HP.
+	g.applyAdjudication(&schema.Adjudication{Deltas: []schema.Delta{
+		{Type: schema.DeltaStatus, Target: "monster-1", Status: "destroyed"},
+	}})
+	m := g.state.FindEntity("monster-1")
+	if m.Alive {
+		t.Fatal("expected foe with a removal status to be out of the fight")
+	}
+	if !g.finalizeIfEnded() || g.state.Outcome != schema.OutcomeVictory {
+		t.Fatalf("expected victory once the foe is removed, got phase=%q outcome=%q", g.state.Phase, g.state.Outcome)
+	}
+
+	// A removal-type status on the player must NOT instantly kill them.
+	g2 := newTestGame(player(20, 20), monster("monster-1", "Goblin", 8, 12))
+	g2.applyAdjudication(&schema.Adjudication{Deltas: []schema.Delta{
+		{Type: schema.DeltaStatus, Target: SeatPlayer1, Status: "subdued"},
+	}})
+	if !g2.state.Player().Alive {
+		t.Fatal("player should not die from a flavor status, only from 0 HP")
+	}
+}
+
 func TestItemCountsStayNonNegative(t *testing.T) {
 	p := player(20, 20)
 	p.Inventory = []schema.Item{{Name: "Potion", Qty: 1}}

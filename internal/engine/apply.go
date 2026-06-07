@@ -27,14 +27,27 @@ func (g *Game) applyAdjudication(adj *schema.Adjudication) []string {
 	// Leveling is engine-owned (thresholds), like death below.
 	logs = append(logs, g.levelUps()...)
 
-	// Death is an engine-owned consequence, never trusted to the model. The
-	// game-over transition itself is decided by finalizeIfEnded after the beat.
+	// Death is an engine-owned consequence, never trusted to the model. An
+	// entity dies at 0 HP; additionally, a non-player foe the DM tags with a
+	// removal status ("destroyed", "defeated", ...) is taken out of the fight,
+	// even if it still has HP. Without this, the DM "defeats" a foe with a
+	// status while its HP stays positive, so victory never triggers and the
+	// fight loops. The game-over transition itself is decided by finalizeIfEnded.
 	for i := range g.state.Entities {
 		e := &g.state.Entities[i]
-		if e.HP <= 0 && e.Alive {
+		if !e.Alive {
+			continue
+		}
+		diedByHP := e.HP <= 0
+		removed := e.Kind != schema.KindPlayer && hasRemovalStatus(e)
+		if diedByHP || removed {
 			e.HP = 0
 			e.Alive = false
-			logs = append(logs, e.Name+" falls.")
+			if diedByHP {
+				logs = append(logs, e.Name+" falls.")
+			} else {
+				logs = append(logs, e.Name+" is out of the fight.")
+			}
 		}
 	}
 
@@ -206,6 +219,25 @@ func clampNonNeg(n int) int {
 		return 0
 	}
 	return n
+}
+
+// removalStatuses are status words that mean a foe is out of the fight. The DM
+// sometimes "defeats" an enemy with one of these instead of dealing lethal
+// damage; the engine treats them as removal so the encounter can actually end.
+var removalStatuses = map[string]bool{
+	"dead": true, "destroyed": true, "defeated": true, "slain": true,
+	"killed": true, "incapacitated": true, "unconscious": true,
+	"neutralized": true, "subdued": true, "vanquished": true,
+	"banished": true, "eliminated": true, "down": true, "out": true,
+}
+
+func hasRemovalStatus(e *schema.Entity) bool {
+	for _, s := range e.Status {
+		if removalStatuses[strings.ToLower(strings.TrimSpace(s))] {
+			return true
+		}
+	}
+	return false
 }
 
 func containsStr(ss []string, s string) bool {
