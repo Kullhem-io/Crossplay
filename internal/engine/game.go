@@ -24,6 +24,12 @@ const (
 	BrainGemma = "gemma-local"
 )
 
+// genreRule is appended to every creative prompt so the models honor whatever
+// world the human asked for instead of sliding into default medieval fantasy.
+// The fantasy pull comes mostly from words like "dungeon" and "monster", so the
+// prompts avoid those and lean on this rule.
+const genreRule = "Honor the topic's setting, era, genre, and tone exactly. If it is modern, mundane, or otherwise non-fantasy, keep it grounded in that reality. Do not default to medieval fantasy, and never add magic, monsters, or archaic gear unless the topic clearly calls for them. The character, the adversaries or hazards, and the items must plausibly belong to that world."
+
 // Game holds the canonical state and orchestrates seats. One per process for now.
 type Game struct {
 	mu          sync.Mutex

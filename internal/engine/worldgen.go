@@ -44,7 +44,7 @@ func (g *Game) Start(ctx context.Context, topic string) error {
 
 func (g *Game) worldgen(ctx context.Context, topic string) (*schema.WorldgenResult, error) {
 	msgs := []agents.Message{
-		{Role: "system", Content: "You design the starting state of a text RPG. Given a world topic, invent a vivid starting location, one player character fit for it, and 1 to 3 monsters or threats present in that location. Keep HP values in the 8 to 30 range. Output only the requested JSON."},
+		{Role: "system", Content: "You design the opening of an interactive story. Given a world topic, invent a vivid starting location, one fitting main character, and 1 to 3 adversaries or hazards that genuinely belong in that place (a person, an animal, a machine, an environmental danger, whatever suits it). " + genreRule + " Keep HP values in the 8 to 30 range. Output only the requested JSON."},
 		{Role: "user", Content: "World topic: " + topic},
 	}
 	raw, err := g.sched.Complete(ctx, BrainQwen, msgs, agents.CallOpts{

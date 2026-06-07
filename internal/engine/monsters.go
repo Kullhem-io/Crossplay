@@ -79,9 +79,9 @@ func (g *Game) resolveMonsters(ctx context.Context, results []*monsterResult) {
 // monsterTurn has the DM decide one monster's action + result, given a roll.
 func (g *Game) monsterTurn(ctx context.Context, m schema.Entity, roll int) (*schema.Adjudication, error) {
 	st := g.Snapshot()
-	sys := "You are the Game System controlling a single monster in a text RPG. Decide what THIS monster does on its turn and the mechanical result, as JSON deltas. " +
-		"A d20 has been rolled for it: 1 is a critical failure, 10 to 11 average, 20 a critical success. The monster acts according to its nature, usually against the player. " +
-		"Target entities by id. Keep damage proportional (typically 2 to 10). Output only the JSON."
+	sys := "You are the Game System controlling one adversary or hazard in an interactive story. Decide what it does on its turn and the mechanical result, as JSON deltas. " +
+		"A d20 has been rolled for it: 1 is a critical failure, 10 to 11 average, 20 a critical success. It acts according to its nature, usually against the player. " +
+		genreRule + " Target entities by id. Keep damage proportional (typically 2 to 10). Output only the JSON."
 	user := fmt.Sprintf("%s\nIt is the turn of the monster: %s (id %s).\nIts action roll (d20): %d\nDecide its action and the outcome.",
 		sceneBrief(st), m.Name, m.ID, roll)
 
@@ -107,7 +107,7 @@ func (g *Game) narrateMonsters(ctx context.Context, outcomes []string) error {
 	g.seat(SeatNarrator, BrainQwen, "thinking")
 	defer g.seat(SeatNarrator, BrainQwen, "idle")
 
-	sys := "You are the Narrator of a text RPG. Dramatize the enemies' turn in vivid prose, second person toward the player, present tense, 1 to 2 short paragraphs. Stay consistent with the stated outcomes; invent no extra damage, deaths, or items, and do not break character."
+	sys := "You are the Narrator of an interactive story. Dramatize the adversaries' turn in vivid prose, second person toward the player, present tense, 1 to 2 short paragraphs. " + genreRule + " Stay consistent with the stated outcomes; invent no extra damage, deaths, or items, and do not break character."
 	user := fmt.Sprintf("%s\nOn the enemies' turn:\n- %s\nNarrate this.", sceneBrief(st), strings.Join(outcomes, "\n- "))
 	return g.streamNarration(ctx, []agents.Message{
 		{Role: "system", Content: sys},

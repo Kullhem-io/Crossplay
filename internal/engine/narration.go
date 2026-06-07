@@ -17,7 +17,7 @@ func (g *Game) openingScene(ctx context.Context) error {
 		return fmt.Errorf("no state")
 	}
 	return g.streamNarration(ctx, []agents.Message{
-		{Role: "system", Content: "You are the Narrator of a text RPG. Write vivid, atmospheric prose in second person, present tense, 2 to 3 short paragraphs. Establish the scene and the threat, end on a hook. Do not invent mechanics, HP, or items beyond what you're told; do not ask the player questions or break character."},
+		{Role: "system", Content: "You are the Narrator of an interactive story. Write vivid, atmospheric prose in second person, present tense, 2 to 3 short paragraphs. Establish the scene and the threat, end on a hook. " + genreRule + " Do not invent mechanics, HP, or items beyond what you're told; do not ask the player questions or break character."},
 		{Role: "user", Content: "Narrate the opening. " + sceneBrief(st)},
 	})
 }
@@ -32,11 +32,11 @@ func (g *Game) narrateEnding(ctx context.Context) {
 	var sys, ask string
 	if st.Outcome == schema.OutcomeVictory {
 		g.logf("victory")
-		sys = "You are the Narrator of a text RPG, writing the final passage. The player has overcome every threat. Write a satisfying, vivid closing: the last foe falling, the quiet after, what the player has won. Second person, present tense, 1 to 2 short paragraphs. Do not start a new fight or ask questions. End the story."
+		sys = "You are the Narrator of an interactive story, writing the final passage. The player has overcome every threat. Write a satisfying, vivid closing: the last adversary falling, the quiet after, what the player has won. Second person, present tense, 1 to 2 short paragraphs. " + genreRule + " Do not start a new conflict or ask questions. End the story."
 		ask = "Narrate the victory and the aftermath."
 	} else {
 		g.logf("the adventure is over")
-		sys = "You are the Narrator of a text RPG, writing the final passage. The player has fallen. Write a somber, vivid closing of their last moments and how the scene falls still around them. Second person shifting to a final remove, present tense, 1 to 2 short paragraphs. Do not revive them or ask questions. End the story."
+		sys = "You are the Narrator of an interactive story, writing the final passage. The player has fallen. Write a somber, vivid closing of their last moments and how the scene falls still around them. Second person shifting to a final remove, present tense, 1 to 2 short paragraphs. " + genreRule + " Do not revive them or ask questions. End the story."
 		ask = "Narrate the player's defeat and final moments."
 	}
 	if err := g.streamNarration(ctx, []agents.Message{

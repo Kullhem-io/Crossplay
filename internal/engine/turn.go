@@ -151,7 +151,7 @@ func (g *Game) playerTurn(ctx context.Context, voidCtx string) (string, error) {
 	defer g.seat(SeatPlayer1, BrainGemma, "idle")
 
 	msgs := []agents.Message{
-		{Role: "system", Content: fmt.Sprintf("You are %s, %s. You are playing a text RPG dungeon crawl. Decide your character's next action, in character. Be decisive and specific. State ONLY what you attempt, never narrate the outcome. One or two sentences.", name, persona)},
+		{Role: "system", Content: fmt.Sprintf("You are %s, %s. You are the protagonist of an interactive story. Decide your character's next action, in character and true to the setting. Be decisive and specific. State ONLY what you attempt, never narrate the outcome. One or two sentences. %s", name, persona, genreRule)},
 		{Role: "user", Content: joinNonEmpty("\n", sceneBrief(st), g.recentContext(), voidCtx, "What do you do?")},
 	}
 	intent, err := g.sched.Complete(ctx, BrainGemma, msgs, agents.CallOpts{
@@ -168,7 +168,7 @@ func (g *Game) adjudicate(ctx context.Context, intent string, roll int, voidCtx 
 	g.seat(SeatDM, BrainGemma, "thinking")
 	defer g.seat(SeatDM, BrainGemma, "idle")
 
-	sys := "You are the Game System (referee) for a text RPG. You decide the mechanical outcome of the player's attempt and output it as JSON deltas. " +
+	sys := "You are the Game System (referee) for an interactive story. You decide the mechanical outcome of the player's attempt and output it as JSON deltas. " + genreRule + " " +
 		"A d20 has already been rolled for the attempt: 1 is a critical failure, 10 to 11 is average, 20 is a critical success. Interpret the roll in context, a high roll succeeds well, a low roll fails or backfires. " +
 		"Target entities by their id. Keep damage proportional (typically 2 to 10). You may add status effects or grant/consume items freely, but only to the listed entities. " +
 		"Award the player XP (xp delta, typically 3 to 10, more for defeating a foe) when they make meaningful progress. Be deterministic and concise. Output only the JSON."
