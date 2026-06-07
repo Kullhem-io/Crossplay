@@ -79,4 +79,4 @@ web/src/               React SPA: App (lanes/stage/void), useCrossplay (WS hook)
 - **M5 ✅** Voice from the Void: queued utterances injected as in-world context into the next round; advisory-only (never a delta).
 - **M6 ✅** Agent-lane polish (round counter, game-over overlay) + pipelining: the player-beat narration (Qwen) runs concurrently with monster adjudication (Gemma) so both lanes light at once.
 
-The game currently plays itself autonomously (player is a Gemma seat; human spectates + whispers). Round cadence is bounded by Qwen narration (serial). Natural next iterations: location/room transitions + speculative pre-build of the next area, human-as-player binding, multiple player seats, replay via stored seed, persistence.
+The game currently plays itself autonomously (player is a Gemma seat; human spectates + whispers). Round cadence is bounded by Qwen narration (serial). See [ROADMAP.md](ROADMAP.md) for where it goes next (location transitions, speculative pre-build, human and multi-player seats, graphics and image generation, replay, persistence).

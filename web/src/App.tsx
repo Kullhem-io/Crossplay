@@ -50,7 +50,7 @@ export default function App() {
           <div className="setup">
             <h2>Set the world</h2>
             <p className="hint">
-              Anything goes — a flooded cathedral, a Target on Black Friday, the inside of a whale.
+              Anything goes: a flooded cathedral, a Target on Black Friday, the inside of a whale.
             </p>
             <div className="row">
               <input
