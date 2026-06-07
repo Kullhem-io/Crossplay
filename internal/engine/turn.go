@@ -89,6 +89,11 @@ func (g *Game) runRound(ctx context.Context) error {
 	if err := g.narrateBeat(rctx, pname, intent, adj); err != nil && rctx.Err() == nil {
 		g.errf(fmt.Errorf("narrate: %w", err))
 	}
+
+	// 6. Enemies' turn — DM drives living monsters (skipped if the player just died).
+	if s := g.Snapshot(); s != nil && s.Phase == schema.PhasePlaying {
+		g.monsterPhase(rctx)
+	}
 	return nil
 }
 
