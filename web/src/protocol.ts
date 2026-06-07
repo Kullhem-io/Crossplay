@@ -14,8 +14,22 @@ export interface AgentStatus {
 
 // Server -> client envelope.
 export interface ServerEvent {
-  type: 'hello' | 'agent_status' | 'narration' | 'state' | 'log' | 'error'
+  type: 'hello' | 'agent_status' | 'action' | 'narration' | 'state' | 'log' | 'error'
   payload?: unknown
+}
+
+export interface ActionPayload {
+  seat: string
+  name: string
+  text: string
+}
+
+// A rendered transcript entry — actions and prose interleaved in order.
+export interface TranscriptEntry {
+  id: number
+  kind: 'action' | 'prose'
+  name?: string
+  text: string
 }
 
 // Client -> server envelope.

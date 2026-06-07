@@ -35,6 +35,10 @@ func (g *Game) Start(ctx context.Context, topic string) error {
 		g.errf(fmt.Errorf("opening scene: %w", err))
 	}
 	g.seat(SeatNarrator, BrainQwen, "idle")
+
+	// Hand off to the autonomous play loop (runs on its own long-lived context,
+	// not the short-lived setup ctx).
+	g.startLoop()
 	return nil
 }
 

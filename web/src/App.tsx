@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useCrossplay } from './useCrossplay'
-import type { AgentStatus, Entity } from './protocol'
+import type { AgentStatus, Entity, TranscriptEntry } from './protocol'
 import './App.css'
 
 // The three seats shown as live lanes. (M0: static roster; later this comes
@@ -12,10 +12,15 @@ const LANES: { seat: string; label: string; brain: string }[] = [
 ]
 
 export default function App() {
-  const { conn, seats, state, log, narration, start, speakVoid } = useCrossplay()
+  const { conn, seats, state, log, transcript, start, speakVoid } = useCrossplay()
   const [topic, setTopic] = useState('')
   const [voidText, setVoidText] = useState('')
   const started = state != null
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+  }, [transcript])
 
   const onStart = () => topic.trim() && start(topic.trim())
   const onVoid = () => {
@@ -63,8 +68,12 @@ export default function App() {
               <h2>{state!.location.name}</h2>
               <p className="muted">{state!.location.description}</p>
             </div>
-            <article className="narrative">
-              {narration || <em>The world is taking shape…</em>}
+            <article className="narrative" ref={scrollRef}>
+              {transcript.length === 0 ? (
+                <em>The world is taking shape…</em>
+              ) : (
+                transcript.map((e) => <Beat key={e.id} e={e} />)
+              )}
             </article>
           </div>
         )}
@@ -100,6 +109,17 @@ export default function App() {
       </footer>
     </div>
   )
+}
+
+function Beat({ e }: { e: TranscriptEntry }) {
+  if (e.kind === 'action') {
+    return (
+      <p className="beat-action">
+        <span className="beat-name">{e.name}</span> {e.text}
+      </p>
+    )
+  }
+  return <p className="beat-prose">{e.text}</p>
 }
 
 function Lane({ label, brain, status }: { label: string; brain: string; status?: AgentStatus }) {

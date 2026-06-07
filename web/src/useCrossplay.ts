@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AgentStatus, ClientMessage, GameState, ServerEvent, SeatStatus } from './protocol'
+import type {
+  ActionPayload,
+  AgentStatus,
+  ClientMessage,
+  GameState,
+  ServerEvent,
+  SeatStatus,
+  TranscriptEntry,
+} from './protocol'
 
 export type ConnState = 'connecting' | 'open' | 'closed'
 
@@ -8,7 +16,7 @@ export interface CrossplayState {
   seats: Record<string, AgentStatus> // keyed by seat id
   state: GameState | null
   log: string[]
-  narration: string
+  transcript: TranscriptEntry[]
   start: (topic: string) => void
   speakVoid: (text: string) => void
 }
@@ -20,7 +28,8 @@ export function useCrossplay(): CrossplayState {
   const [seats, setSeats] = useState<Record<string, AgentStatus>>({})
   const [state, setState] = useState<GameState | null>(null)
   const [log, setLog] = useState<string[]>([])
-  const [narration, setNarration] = useState('')
+  const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
+  const nextId = useRef(0)
   const wsRef = useRef<WebSocket | null>(null)
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -60,9 +69,24 @@ export function useCrossplay(): CrossplayState {
             setState(ev.payload as GameState)
             break
           }
+          case 'action': {
+            const a = ev.payload as ActionPayload
+            setTranscript((t) => [
+              ...t,
+              { id: nextId.current++, kind: 'action', name: a.name, text: a.text },
+            ])
+            break
+          }
           case 'narration': {
             const p = ev.payload as { token?: string }
-            if (p.token) setNarration((n) => n + p.token)
+            if (!p.token) break
+            setTranscript((t) => {
+              const last = t[t.length - 1]
+              if (last && last.kind === 'prose') {
+                return [...t.slice(0, -1), { ...last, text: last.text + p.token }]
+              }
+              return [...t, { id: nextId.current++, kind: 'prose', text: p.token! }]
+            })
             break
           }
           case 'log': {
@@ -96,7 +120,7 @@ export function useCrossplay(): CrossplayState {
     [send],
   )
 
-  return { conn, seats, state, log, narration, start, speakVoid }
+  return { conn, seats, state, log, transcript, start, speakVoid }
 }
 
 export const SEAT_STATUS_FALLBACK: SeatStatus = 'idle'
