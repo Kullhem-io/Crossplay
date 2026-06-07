@@ -72,9 +72,48 @@
 .stage {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 260px;
+  grid-template-columns: 1fr 280px;
   gap: 12px;
   align-items: start;
+}
+.scene { display: flex; flex-direction: column; gap: 12px; }
+.location h2 { margin: 0 0 4px; }
+.side { display: flex; flex-direction: column; gap: 12px; }
+
+/* Entity cards + HP bars */
+.entities { display: flex; flex-direction: column; gap: 8px; }
+.ent {
+  background: #11151f;
+  border: 1px solid #222838;
+  border-left: 3px solid #3a4358;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.ent-player { border-left-color: #6ee7a8; }
+.ent-monster { border-left-color: #e7746e; }
+.ent-dead { opacity: 0.4; }
+.ent-head { display: flex; justify-content: space-between; align-items: baseline; }
+.ent-name { font-weight: 600; font-size: 0.92rem; }
+.ent-hp { font-size: 0.74rem; color: #8a93a8; font-family: ui-monospace, monospace; }
+.hpbar {
+  margin-top: 6px;
+  height: 6px;
+  background: #0a0e17;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.hpfill {
+  height: 100%;
+  background: linear-gradient(90deg, #6ee7a8, #4cc98a);
+  transition: width 0.5s ease;
+}
+.ent-monster .hpfill { background: linear-gradient(90deg, #e7746e, #c9544c); }
+.ent-status {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: #e7c86e;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 .setup {
   background: #11151f;

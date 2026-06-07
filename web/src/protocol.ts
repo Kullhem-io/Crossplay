@@ -1,5 +1,7 @@
 // Wire protocol shared with the Go backend (internal/transport/events.go).
-// Hand-maintained for M0; will be replaced by Go->TS codegen in M2.
+// Ledger types are generated from Go — see src/gen/schema.ts (make gen-types).
+
+export type { GameState, Entity, Location, Item, Phase, EntityKind } from './gen/schema'
 
 export type SeatStatus = 'idle' | 'thinking' | 'streaming'
 

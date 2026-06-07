@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useCrossplay } from './useCrossplay'
-import type { AgentStatus } from './protocol'
+import type { AgentStatus, Entity } from './protocol'
 import './App.css'
 
 // The three seats shown as live lanes. (M0: static roster; later this comes
@@ -12,16 +12,12 @@ const LANES: { seat: string; label: string; brain: string }[] = [
 ]
 
 export default function App() {
-  const { conn, seats, log, narration, start, speakVoid } = useCrossplay()
+  const { conn, seats, state, log, narration, start, speakVoid } = useCrossplay()
   const [topic, setTopic] = useState('')
   const [voidText, setVoidText] = useState('')
-  const [started, setStarted] = useState(false)
+  const started = state != null
 
-  const onStart = () => {
-    if (!topic.trim()) return
-    start(topic.trim())
-    setStarted(true)
-  }
+  const onStart = () => topic.trim() && start(topic.trim())
   const onVoid = () => {
     if (!voidText.trim()) return
     speakVoid(voidText.trim())
@@ -62,15 +58,32 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <article className="narrative">{narration || <em>The world is taking shape…</em>}</article>
+          <div className="scene">
+            <div className="location">
+              <h2>{state!.location.name}</h2>
+              <p className="muted">{state!.location.description}</p>
+            </div>
+            <article className="narrative">
+              {narration || <em>The world is taking shape…</em>}
+            </article>
+          </div>
         )}
 
-        <aside className="log">
-          {log.length === 0 ? (
-            <span className="muted">engine log…</span>
-          ) : (
-            log.map((line, i) => <div key={i}>{line}</div>)
+        <aside className="side">
+          {started && (
+            <div className="entities">
+              {state!.entities.map((e) => (
+                <EntityCard key={e.id} e={e} />
+              ))}
+            </div>
           )}
+          <div className="log">
+            {log.length === 0 ? (
+              <span className="muted">engine log…</span>
+            ) : (
+              log.map((line, i) => <div key={i}>{line}</div>)
+            )}
+          </div>
         </aside>
       </main>
 
@@ -99,6 +112,26 @@ function Lane({ label, brain, status }: { label: string; brain: string; status?:
       </div>
       <div className="lane-brain">{brain}</div>
       <div className="lane-status">{s}</div>
+    </div>
+  )
+}
+
+function EntityCard({ e }: { e: Entity }) {
+  const pct = e.maxHp > 0 ? Math.max(0, Math.round((e.hp / e.maxHp) * 100)) : 0
+  return (
+    <div className={`ent ent-${e.kind} ${e.alive ? '' : 'ent-dead'}`}>
+      <div className="ent-head">
+        <span className="ent-name">{e.name}</span>
+        <span className="ent-hp">
+          {e.hp}/{e.maxHp}
+        </span>
+      </div>
+      <div className="hpbar">
+        <div className="hpfill" style={{ width: `${pct}%` }} />
+      </div>
+      {e.status.length > 0 && (
+        <div className="ent-status">{e.status.join(', ')}</div>
+      )}
     </div>
   )
 }

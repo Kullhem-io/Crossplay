@@ -1,0 +1,7 @@
+# Generates TypeScript types from the Go ledger schema so the front end and
+# backend share one source of truth. Run: make gen-types  (or the go run below)
+packages:
+  - path: github.com/Kullhem-io/Crossplay/internal/schema
+    output_path: web/src/gen/schema.ts
+    frontmatter: |
+      // Code generated from internal/schema by tygo. DO NOT EDIT.

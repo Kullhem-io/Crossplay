@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AgentStatus, ClientMessage, ServerEvent, SeatStatus } from './protocol'
+import type { AgentStatus, ClientMessage, GameState, ServerEvent, SeatStatus } from './protocol'
 
 export type ConnState = 'connecting' | 'open' | 'closed'
 
 export interface CrossplayState {
   conn: ConnState
   seats: Record<string, AgentStatus> // keyed by seat id
+  state: GameState | null
   log: string[]
   narration: string
   start: (topic: string) => void
@@ -17,6 +18,7 @@ export interface CrossplayState {
 export function useCrossplay(): CrossplayState {
   const [conn, setConn] = useState<ConnState>('connecting')
   const [seats, setSeats] = useState<Record<string, AgentStatus>>({})
+  const [state, setState] = useState<GameState | null>(null)
   const [log, setLog] = useState<string[]>([])
   const [narration, setNarration] = useState('')
   const wsRef = useRef<WebSocket | null>(null)
@@ -52,6 +54,10 @@ export function useCrossplay(): CrossplayState {
           case 'agent_status': {
             const s = ev.payload as AgentStatus
             setSeats((prev) => ({ ...prev, [s.seat]: s }))
+            break
+          }
+          case 'state': {
+            setState(ev.payload as GameState)
             break
           }
           case 'narration': {
@@ -90,7 +96,7 @@ export function useCrossplay(): CrossplayState {
     [send],
   )
 
-  return { conn, seats, log, narration, start, speakVoid }
+  return { conn, seats, state, log, narration, start, speakVoid }
 }
 
 export const SEAT_STATUS_FALLBACK: SeatStatus = 'idle'
