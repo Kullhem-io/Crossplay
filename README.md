@@ -17,7 +17,11 @@ single-file Node prototype lives on the [`v1`](https://github.com/Kullhem-io/Cro
 - **Seat ≠ brain.** Players/DM/Narrator are *seats*; models or APIs are *brains*; a *binding* connects them. Adding a player (local model, Gemini API, or a human) is just a new seat + binding.
 - **Voice from the Void.** When you speak, you're a disembodied voice in the world, it can startle and influence, but never breaks character or halts play.
 
-See [CLAUDE.md](CLAUDE.md) for the full architecture.
+See [CLAUDE.md](CLAUDE.md) for the full architecture and [ROADMAP.md](ROADMAP.md) for what is next.
+
+## What works today
+
+You give it a topic and it plays itself: Qwen builds a world true to that topic (a locker room gives you a bully and a burst pipe, not goblins), a Gemma player acts in character, a Gemma referee turns each action plus a seeded d20 into real ledger changes, and Qwen narrates the result. You watch three live agent lanes, HP and XP bars, and a per-beat roll-and-damage readout, and you can whisper into the void to nudge the scene. Characters can level up, and the story reaches a real victory or defeat ending with a closing passage. You are a spectator for now; taking a seat yourself is on the roadmap.
 
 ## Run it (dev)
 

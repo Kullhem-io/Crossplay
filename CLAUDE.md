@@ -18,6 +18,8 @@ export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
 go run ./cmd/crossplay      # backend on :3001 (PORT to override)
 go build ./...              # compile everything
 go vet ./...               # static checks
+go test ./...              # engine unit tests (apply/finalize invariants)
+make gen-types             # regenerate web/src/gen/schema.ts from Go schema (after editing internal/schema)
 ```
 
 Front end:
@@ -29,7 +31,9 @@ npm run dev                # Vite dev server, proxies /ws + /healthz to :3001
 npm run build              # tsc -b && vite build -> web/dist (served by Go if present)
 ```
 
-No test suite yet. Dev loop is: run backend + `npm run dev`, open the Vite URL.
+For a single-process run, build the web once (`npm run build`) and the Go server
+serves `web/dist` directly on :3001. Otherwise run the backend plus `npm run dev`
+and open the Vite URL.
 
 ### Requires local LLM servers (OpenAI-compatible)
 - **Qwen** on `127.0.0.1:8001`, **serial, 1 concurrent**. Narrator / world-building. Recommended temp **1.0**.
@@ -51,23 +55,34 @@ No test suite yet. Dev loop is: run backend + `npm run dev`, open the Vite URL.
 
 **5. Voice from the Void.** The human's input is **not a seat**, it's injected as a high-priority in-world phenomenon into the DM's context. Hard guardrails (in the DM prompt *and* enforced as advisory-only in the engine): treat as a disembodied voice, never acknowledge anything meta/OOC, may startle/influence, **never** halts play, breaks character, or acts as a control command. Even "everyone dies" becomes dread, not an engine call.
 
-## Turn loop (target shape)
+**6. Honor the topic.** Fantasy-coded words (dungeon, monster) pull every world toward medieval fantasy. The prompts avoid them and append a shared `genreRule` (in `engine/game.go`) telling the models to match the topic's setting and tone and stay grounded when it is mundane. A locker-room topic yields a bully and a burst pipe, not goblins.
 
-Init: topic → Qwen worldgen → validated `GameState` (location, player, monsters) → broadcast.
-Round: player intent → DM adjudication (deltas) → engine rolls dice + applies + broadcasts patch immediately → DM drives each monster (parallel focused calls) → Narrator streams prose. Game-over on player HP ≤ 0.
+## Turn loop (as built)
+
+Init: topic → Qwen worldgen (grammar-constrained JSON) → engine builds the validated `GameState` (location, player, adversaries; engine fills ids/level/hp) → broadcast → Qwen streams the opening scene → the autonomous play loop starts.
+
+Each round:
+1. Drain any Voice-from-the-Void utterances into in-world context for this round.
+2. Player seat (Gemma) declares an intent.
+3. Engine rolls a seeded d20, then the DM (Gemma) adjudicates intent + roll into `Adjudication` deltas.
+4. Engine applies deltas (clamps, death, XP and engine-owned level-ups), broadcasts state, emits a `mechanics` event (roll + changes).
+5. Pipelined: Narrator (Qwen) streams the player beat while the DM (Gemma) adjudicates the monsters concurrently; then monsters are applied and narrated.
+6. `finalizeIfEnded` ends the game on player death (defeat) or last adversary down (victory); the Narrator streams a fitted closing passage.
+
+Event types on the wire (see `internal/transport/events.go`): `hello`, `agent_status`, `action`, `mechanics`, `void`, `narration`, `state`, `log`, `error`.
 
 ## Layout
 
 ```
 cmd/crossplay/         entrypoint (HTTP + WS, serves web/dist if built)
 internal/transport/    WebSocket hub + event protocol (events.go = the wire types)
-internal/engine/       turn loop, ledger, seeded dice, invariant enforcement  (to build)
-internal/agents/       Brain interface, scheduler, model adapters             (to build)
-internal/schema/       GameState / Delta types, source for Go->TS codegen      (to build)
-web/src/               React SPA: App (lanes/stage/void), useCrossplay (WS hook), protocol.ts
+internal/engine/       turn loop, ledger, seeded dice, invariants, worldgen, narration, monsters, void
+internal/schema/       GameState / Delta / Adjudication types, source for Go->TS codegen
+internal/agents/       Brain interface, priority scheduler, OpenAI-compatible adapter
+web/src/               React SPA: App (lanes/stage/void), useCrossplay (WS hook), protocol.ts, gen/schema.ts
 ```
 
-`web/src/protocol.ts` is hand-maintained for now; it will be **generated from the Go `internal/schema` types** (e.g. tygo) so the wire format has one source of truth.
+The ledger types live in `internal/schema` and are the single source of truth: `make gen-types` regenerates `web/src/gen/schema.ts` from them (tygo). `web/src/protocol.ts` re-exports those and adds the wire-envelope types. After changing any `internal/schema` type, run `make gen-types`.
 
 ## Build status (milestones), thin vertical slice complete
 
@@ -79,4 +94,10 @@ web/src/               React SPA: App (lanes/stage/void), useCrossplay (WS hook)
 - **M5 ✅** Voice from the Void: queued utterances injected as in-world context into the next round; advisory-only (never a delta).
 - **M6 ✅** Agent-lane polish (round counter, game-over overlay) + pipelining: the player-beat narration (Qwen) runs concurrently with monster adjudication (Gemma) so both lanes light at once.
 
-The game currently plays itself autonomously (player is a Gemma seat; human spectates + whispers). Round cadence is bounded by Qwen narration (serial). See [ROADMAP.md](ROADMAP.md) for where it goes next (location transitions, speculative pre-build, human and multi-player seats, graphics and image generation, replay, persistence).
+Since the slice (post-M6):
+- **Game feel:** player cards show class, level, an XP bar, and a one-line description; engine-owned XP and leveling (DM awards XP, engine crosses thresholds); per-beat `mechanics` chip (d20 roll + applied changes); monster actions colored distinctly from the player.
+- **Real endings:** victory (last adversary down) and defeat (player falls), each with a fitted closing passage from the Narrator and a victory/defeat overlay.
+- **Topic fidelity:** the `genreRule` keeps worlds true to the topic instead of drifting to medieval fantasy.
+- **Resilience + tests:** narrator streaming retries once on an early connection drop (GPU contention); first engine unit tests cover damage clamp/death, heal cap, XP level-up, finalize victory/defeat, item non-negativity.
+
+The game plays itself autonomously (player is a Gemma seat; human spectates + whispers). Round cadence is bounded by Qwen narration (serial). See [ROADMAP.md](ROADMAP.md) for where it goes next (location transitions, speculative pre-build, human and multi-player seats, graphics and image generation, replay, persistence).
