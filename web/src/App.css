@@ -221,6 +221,12 @@
   color: #e7a0a0;
 }
 .gameover button { background: #e7746e; }
+.gameover-victory {
+  background: #101a13;
+  border-color: #225a30;
+  color: #9fe7a0;
+}
+.gameover-victory button { background: #6ee7a8; }
 .beat-void {
   margin: 0 0 14px;
   padding: 8px 12px;

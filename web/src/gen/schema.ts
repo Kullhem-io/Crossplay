@@ -70,11 +70,19 @@ export const KindNPC: EntityKind = "npc";
 export interface GameState {
   topic: string;
   phase: Phase;
+  outcome: Outcome; // set when Phase is game_over
   round: number /* int */;
   location: Location;
   entities: Entity[];
   log: string[];
 }
+/**
+ * Outcome records how a finished game ended.
+ */
+export type Outcome = string;
+export const OutcomeNone: Outcome = "";
+export const OutcomeVictory: Outcome = "victory";
+export const OutcomeDefeat: Outcome = "defeat";
 /**
  * Location is the current scene.
  */
@@ -83,7 +91,7 @@ export interface Location {
   description: string;
 }
 /**
- * Entity is any actor on the ledger — the player and monsters share this type;
+ * Entity is any actor on the ledger, the player and monsters share this type;
  * only Kind (and thus who decides their actions) differs.
  */
 export interface Entity {
@@ -114,7 +122,7 @@ export interface Item {
 /**
  * WorldgenResult is what the Qwen worldgen call returns (grammar-constrained
  * by WorldgenSchema). The engine validates it and builds the canonical
- * GameState from it — models never construct the ledger directly.
+ * GameState from it, models never construct the ledger directly.
  */
 export interface WorldgenResult {
   location: Location;

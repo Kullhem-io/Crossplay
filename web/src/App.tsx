@@ -79,8 +79,8 @@ export default function App() {
               )}
             </article>
             {state!.phase === 'game_over' && (
-              <div className="gameover">
-                <span>The adventure has ended.</span>
+              <div className={`gameover gameover-${state!.outcome || 'defeat'}`}>
+                <span>{state!.outcome === 'victory' ? 'Victory.' : 'The adventure has ended.'}</span>
                 <button onClick={() => location.reload()}>New world</button>
               </div>
             )}

@@ -27,7 +27,8 @@ func (g *Game) applyAdjudication(adj *schema.Adjudication) []string {
 	// Leveling is engine-owned (thresholds), like death below.
 	logs = append(logs, g.levelUps()...)
 
-	// Death + game-over are engine-owned consequences, never trusted to the model.
+	// Death is an engine-owned consequence, never trusted to the model. The
+	// game-over transition itself is decided by finalizeIfEnded after the beat.
 	for i := range g.state.Entities {
 		e := &g.state.Entities[i]
 		if e.HP <= 0 && e.Alive {
@@ -36,12 +37,32 @@ func (g *Game) applyAdjudication(adj *schema.Adjudication) []string {
 			logs = append(logs, e.Name+" falls.")
 		}
 	}
-	if p := g.state.Player(); p != nil && !p.Alive {
-		g.state.Phase = schema.PhaseGameOver
-	}
 
 	g.state.Log = append(g.state.Log, logs...)
 	return logs
+}
+
+// finalizeIfEnded checks win/lose conditions and, on the transition, sets the
+// game-over phase and outcome. Returns true only on the round that ends the
+// game, so the caller narrates the ending exactly once.
+func (g *Game) finalizeIfEnded() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.state == nil || g.state.Phase != schema.PhasePlaying {
+		return false
+	}
+	p := g.state.Player()
+	switch {
+	case p == nil || !p.Alive:
+		g.state.Phase = schema.PhaseGameOver
+		g.state.Outcome = schema.OutcomeDefeat
+	case len(g.state.LivingMonsters()) == 0:
+		g.state.Phase = schema.PhaseGameOver
+		g.state.Outcome = schema.OutcomeVictory
+	default:
+		return false
+	}
+	return true
 }
 
 // applyDelta mutates one entity; assumes g.mu held. Returns a log line or "".

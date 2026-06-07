@@ -32,10 +32,7 @@ func (g *Game) playLoop(ctx context.Context) {
 		}
 		st := g.Snapshot()
 		if st == nil || st.Phase != schema.PhasePlaying {
-			if st != nil && st.Phase == schema.PhaseGameOver {
-				g.logf("the adventure is over")
-			}
-			return
+			return // the ending (if any) was already narrated by runRound
 		}
 		if err := g.runRound(ctx); err != nil {
 			if ctx.Err() == nil {
@@ -118,6 +115,13 @@ func (g *Game) runRound(ctx context.Context) error {
 	<-monstersDone
 	if len(monsters) > 0 && stillPlaying() {
 		g.resolveMonsters(rctx, monsters)
+	}
+
+	// 7. Did this round end the game (player fell, or last foe defeated)? If so,
+	// give it a real closing beat from the narrator.
+	if g.finalizeIfEnded() {
+		g.broadcastState()
+		g.narrateEnding(rctx)
 	}
 	return nil
 }

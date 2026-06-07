@@ -27,11 +27,21 @@ const (
 type GameState struct {
 	Topic    string   `json:"topic"`
 	Phase    Phase    `json:"phase"`
+	Outcome  Outcome  `json:"outcome"` // set when Phase is game_over
 	Round    int      `json:"round"`
 	Location Location `json:"location"`
 	Entities []Entity `json:"entities"`
 	Log      []string `json:"log"`
 }
+
+// Outcome records how a finished game ended.
+type Outcome string
+
+const (
+	OutcomeNone    Outcome = ""
+	OutcomeVictory Outcome = "victory"
+	OutcomeDefeat  Outcome = "defeat"
+)
 
 // Location is the current scene.
 type Location struct {
