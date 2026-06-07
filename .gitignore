@@ -1,5 +1,17 @@
+# Go
+/crossplay
+/cmd/crossplay/crossplay
+*.test
+*.out
+
+# Node / web
 node_modules/
-game.log
-*.log
+web/dist/
+
+# Local Claude settings
+.claude/settings.local.json
+
+# Env / misc
 .env
 .DS_Store
+*.log

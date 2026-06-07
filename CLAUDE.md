@@ -4,71 +4,77 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Crossplay is an AI text RPG where two local LLMs play an adventure together, driven by a custom parallel game engine. Qwen 27B is the Dungeon Master (narrative + its own character), Gemma 12B is the player character, and a second Gemma 12B slot acts as a deterministic game-system referee. All three run simultaneously each turn.
+Crossplay **v2** — an AI text RPG driven by a parallel multi-agent engine. Several local LLMs each take a *seat* (Dungeon Master, Narrator, Player[s]) and play an adventure together in a world seeded from a one-line human topic. This is a from-scratch rewrite; the original single-file Node prototype is preserved on the **`v1` branch** (do not build on it — `main` is the rewrite).
 
-The same server also has a simpler **chat mode** (Qwen + Gemma conversing); game mode is the focus of active work.
+Stack: **Go backend** (orchestration + authoritative state) + **React/Vite TypeScript SPA** (live agent lanes + scene), talking over a single **WebSocket**.
 
 ## Commands
 
+Go is installed at `/usr/local/go/bin` but the non-interactive tool shell does **not** source the profile — prefix Go commands with the PATH export:
+
 ```bash
-npm install
-node server.js            # defaults to :7777
-PORT=3001 node server.js  # override port
+export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
+
+go run ./cmd/crossplay      # backend on :7777 (PORT to override)
+go build ./...              # compile everything
+go vet ./...               # static checks
 ```
 
-No build step, no test suite, no linter — the whole backend is a single `server.js` (ES modules, `"type": "module"`). Validation is done by running live games and inspecting `game.log`.
+Front end:
+
+```bash
+cd web
+npm install
+npm run dev                # Vite dev server, proxies /ws + /healthz to :7777
+npm run build              # tsc -b && vite build -> web/dist (served by Go if present)
+```
+
+No test suite yet. Dev loop is: run backend + `npm run dev`, open the Vite URL.
 
 ### Requires local LLM servers (OpenAI-compatible)
-- **Qwen** on `127.0.0.1:8001` (GPU 0+1) — DM narrative, 1 concurrent
-- **Gemma** on `127.0.0.1:8004` (GPU 2) — player + game-system, **must run with `--parallel 2`** (two concurrent slots)
+- **Qwen** on `127.0.0.1:8001` — **serial, 1 concurrent**. Narrator / world-building. Recommended temp **1.0**.
+- **Gemma** on `127.0.0.1:8004` with **`--parallel 2`** — two slots: DM (temp ~0.2) + Player (temp 1.0).
+- **Reasoning/thinking is OFF** on both models. Every model call must be a single, direct, schema-constrained judgment — never expect multi-step reasoning. All math/dice/bookkeeping lives in Go.
 
-Model IDs and endpoints are constants near the top of `server.js`; models can be overridden via `QWEN_MODEL` / `GEMMA_MODEL` env vars.
+## Architecture — the core ideas
 
-To use: open `http://localhost:<PORT>`, select "Game" mode, enter a scenario, click "Begin Adventure".
+**1. Mechanics first, prose second.** The fatal flaw in v1 was extracting mechanics *out of* prose with regex. Here it's inverted: the Player states intent → the **DM** (low-temp Gemma) adjudicates it into validated structured **deltas** → the engine applies them → the **Narrator** (Qwen) paints prose on the *already-decided* outcome. Prose is always downstream of state.
 
-## Architecture
+**2. Code owns the ledger; the DM owns the world.** The Go engine is the authoritative state store (HP, inventory, position, dice, status timers) — the "character sheet + dice + map". The DM model is the all-seeing referee but never holds the numbers. It's an *accountant, not a rules-lawyer*: it can authorize arbitrary novel outcomes (new items, status effects, world changes); the engine only enforces that the books balance (no negative counts, HP ≤ max, no unexplained teleports). Dice are seeded RNG in code → fair and replayable.
 
-Everything backend lives in `server.js` (~1300 lines). The frontend is plain static files in `public/` (`index.html`, `app.js`, `style.css`) — no framework, no bundler. The browser talks to the server over **Server-Sent Events** (`GET /api/events`); `broadcastSSE()` is the single fan-out point to all connected clients.
+**3. Seat ≠ brain ≠ binding.** Three decoupled concepts (the key to extensibility):
+- **Brain** — a model connection with a concurrency budget (`qwen-local` cap 1, `gemma-local` cap 2, `gemini-api`, `human`). A `human` brain's call just awaits UI input — so "AI plays" and "you play" share one path.
+- **Seat / Agent** — a role with its **own private context, system prompt, temp** (`dm`, `narrator`, `player-1`…). Two seats on the same brain do **not** share a session — no model is ever asked to puppet multiple characters in one chat.
+- **Binding** — which seat rides which brain. Adding a player = new seat + binding; the engine is unchanged.
 
-State is module-level globals in `server.js` (no DB): `gameState`, `gamePhase`, `gameRound`, `pendingGemmaAction` for game mode; `messageHistory`, `conversationRunning/Paused` for chat. `POST /api/chat/start` with `{ mode: 'game' | 'chat' }` selects which loop runs — both modes share the start/stop/pause endpoints.
+**4. Parallelism is the point.** Hard ceiling: 1 Qwen + 2 Gemma in flight. Squeeze it via pipelining, not lockstep: Qwen pre-builds the next area while the current beat plays; the DM resolves monsters across the 2 Gemma slots while the player is idle; multiple player brains think at once. A per-brain **scheduler** (semaphore + priority queue) enforces budgets and lets player turns outrank speculative work. The UI shows this as live **agent lanes**.
 
-### The parallel game turn (the core idea)
+**5. Voice from the Void.** The human's input is **not a seat** — it's injected as a high-priority in-world phenomenon into the DM's context. Hard guardrails (in the DM prompt *and* enforced as advisory-only in the engine): treat as a disembodied voice, never acknowledge anything meta/OOC, may startle/influence, **never** halts play, breaks character, or acts as a control command. Even "everyone dies" becomes dread, not an engine call.
 
-Each round, `runGameLoop()` fires three LLM calls with `Promise.all`, then broadcasts results in a fixed order:
+## Turn loop (target shape)
+
+Init: topic → Qwen worldgen → validated `GameState` (location, player, monsters) → broadcast.
+Round: player intent → DM adjudication (deltas) → engine rolls dice + applies + broadcasts patch immediately → DM drives each monster (parallel focused calls) → Narrator streams prose. Game-over on player HP ≤ 0.
+
+## Layout
 
 ```
-Promise.all([
-  qwenDMTurn()      → prose narrative only, no JSON  (temp 1.0, creative)
-  gemmaPlayerTurn() → in-character action            (temp 1.0, creative)
-  gemmaSystemTurn() → recomputes state JSON          (temp 0.1, deterministic)
-])
-→ parseEventsFromProse() + applyEventsToState()  (rule-based, intermediate state)
-→ mergeWithGameSystem(): if Gemma system output is valid, it overrides; else keep rule-based
-→ SSE broadcast in order: state → DM narrative → Gemma action → events
+cmd/crossplay/         entrypoint (HTTP + WS, serves web/dist if built)
+internal/transport/    WebSocket hub + event protocol (events.go = the wire types)
+internal/engine/       turn loop, ledger, seeded dice, invariant enforcement  (to build)
+internal/agents/       Brain interface, scheduler, model adapters             (to build)
+internal/schema/       GameState / Delta types, source for Go->TS codegen      (to build)
+web/src/               React SPA: App (lanes/stage/void), useCrossplay (WS hook), protocol.ts
 ```
 
-Key consequences to keep in mind when editing:
+`web/src/protocol.ts` is hand-maintained for now; it will be **generated from the Go `internal/schema` types** (e.g. tygo) so the wire format has one source of truth.
 
-1. **Qwen emits prose only.** Mechanical events (damage, healing, items, XP, level-up, death, status, location) are extracted by `parseEventsFromProse()` — regex against the *dynamic* character names from `gameState.characters.*.name`, not hardcoded. This is the first line of state truth and catches most events instantly.
+## Build status (milestones)
 
-2. **The Gemma game-system runs one round behind.** It receives the *prior* turn's narrative + action and reconciles state, so the rule-based parser fills the current-round gap. `mergeWithGameSystem()` prefers the system's JSON when valid, otherwise falls back to the parser's `applyEventsToState()` result.
-
-3. **Qwen patches.** Qwen may append a ```` ```patch ```` block to correct state; `parsePatchBlock()` extracts it and `deepMerge()` folds it in (patch wins on scalar conflicts, arrays are replaced wholesale).
-
-4. **Game phases** (`gamePhase`): `idle` → `initializing` (Qwen creates world + character in JSON mode) → character creation (`parseGemmaCharacter()` pulls name/class/race from Gemma's intro prose) → `playing` (the parallel loop) → `game_over` (HP ≤ 0 or Qwen sets the phase).
-
-### Function map within server.js
-
-- LLM I/O: `callLLM()` (shared by both modes), the per-role turn functions `qwenDMTurn` / `gemmaPlayerTurn` / `gemmaSystemTurn`.
-- Rule engine: `parseEventsFromProse` → `applyEventsToState` → `mergeWithGameSystem`; helpers `resolveTarget`, `extractLocation`, `extractGameState`, `deepMerge`, `parsePatchBlock`.
-- Loops: `runGameLoop` (game), `runConversationLoop` (chat).
-- Prompts: large `*_SYSTEM_PROMPT` / `*_PROMPT` string constants near the top define each role's behavior — editing game behavior usually starts here.
-
-## Known rough edges (from AGENTS.md)
-
-- The rule-based parser has false positives on ambiguous prose (e.g. "heals" used non-mechanically).
-- The Gemma system being one round behind means state lags the latest narrative by a turn.
-- `resolveTarget` pronoun/target fallback is imperfect.
-- No regression tests — parser coverage is only validated by live runs + `game.log`. Check `game.log` after a run for turn-by-turn state, parsed events, and reconciliation status.
-
-`AGENTS.md` has additional architecture notes and the original design rationale.
+- **M0 ✅** Scaffold: Go WS hub + event protocol, React shell with 3 agent lanes / topic input / Void box, end-to-end round-trip.
+- **M1** Brain interface + per-brain scheduler + qwen-local & gemma-local adapters.
+- **M2** Worldgen from topic → validated GameState → rendered scene (+ Go→TS codegen).
+- **M3** Turn loop core (player → DM → dice → narration).
+- **M4** DM-driven monsters (parallel focused calls).
+- **M5** Voice from the Void.
+- **M6** Agent-lane polish + visible speculative pre-build.
