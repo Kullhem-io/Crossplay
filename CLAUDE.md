@@ -37,7 +37,7 @@ and open the Vite URL.
 
 ### Requires local LLM servers (OpenAI-compatible)
 - **Qwen** on `127.0.0.1:8001`, **serial, 1 concurrent**. Narrator / world-building. Recommended temp **1.0**.
-- **Gemma** on `127.0.0.1:8004` with **`--parallel 2`**, two slots: DM (temp ~0.2) + Player (temp 1.0).
+- **Gemma** on `127.0.0.1:8004` with **`--parallel 3`**, three slots shared by the DM (temp ~0.2) and the player party (temp 1.0).
 - **Reasoning/thinking is OFF** on both models. Every model call must be a single, direct, schema-constrained judgment, never expect multi-step reasoning. All math/dice/bookkeeping lives in Go.
 
 ## Architecture, the core ideas
@@ -47,11 +47,11 @@ and open the Vite URL.
 **2. Code owns the ledger; the DM owns the world.** The Go engine is the authoritative state store (HP, inventory, position, dice, status timers), the "character sheet + dice + map". The DM model is the all-seeing referee but never holds the numbers. It's an *accountant, not a rules-lawyer*: it can authorize arbitrary novel outcomes (new items, status effects, world changes); the engine only enforces that the books balance (no negative counts, HP ≤ max, no unexplained teleports). Dice are seeded RNG in code → fair and replayable.
 
 **3. Seat ≠ brain ≠ binding.** Three decoupled concepts (the key to extensibility):
-- **Brain**, a model connection with a concurrency budget (`qwen-local` cap 1, `gemma-local` cap 2, `gemini-api`, `human`). A `human` brain's call just awaits UI input, so "AI plays" and "you play" share one path.
+- **Brain**, a model connection with a concurrency budget (`qwen-local` cap 1, `gemma-local` cap 3, `gemini-api`, `human`). A `human` brain's call just awaits UI input, so "AI plays" and "you play" share one path.
 - **Seat / Agent**, a role with its **own private context, system prompt, temp** (`dm`, `narrator`, `player-1`…). Two seats on the same brain do **not** share a session, no model is ever asked to puppet multiple characters in one chat.
 - **Binding**, which seat rides which brain. Adding a player = new seat + binding; the engine is unchanged.
 
-**4. Parallelism is the point.** Hard ceiling: 1 Qwen + 2 Gemma in flight. Squeeze it via pipelining, not lockstep: Qwen pre-builds the next area while the current beat plays; the DM resolves monsters across the 2 Gemma slots while the player is idle; multiple player brains think at once. A per-brain **scheduler** (semaphore + priority queue) enforces budgets and lets player turns outrank speculative work. The UI shows this as live **agent lanes**.
+**4. Parallelism is the point.** Hard ceiling: 1 Qwen + 3 Gemma in flight. Squeeze it via pipelining, not lockstep: the party's players declare intents at once across the Gemma slots; the DM resolves monsters across those slots while players are idle; the player-beat narration (Qwen) runs concurrently with monster adjudication (Gemma). A per-brain **scheduler** (semaphore + priority queue) enforces budgets and lets player turns outrank speculative work. The UI shows this as live **agent lanes**, one per seat.
 
 **5. Voice from the Void.** The human's input is **not a seat**, it's injected as a high-priority in-world phenomenon into the DM's context. Hard guardrails (in the DM prompt *and* enforced as advisory-only in the engine): treat as a disembodied voice, never acknowledge anything meta/OOC, may startle/influence, **never** halts play, breaks character, or acts as a control command. Even "everyone dies" becomes dread, not an engine call.
 
@@ -59,15 +59,14 @@ and open the Vite URL.
 
 ## Turn loop (as built)
 
-Init: topic → Qwen worldgen (grammar-constrained JSON) → engine builds the validated `GameState` (location, player, adversaries; engine fills ids/level/hp) → broadcast → Qwen streams the opening scene → the autonomous play loop starts.
+Init: topic → Qwen worldgen (grammar-constrained JSON) → engine builds the validated `GameState` (location, a party of player characters, adversaries; engine fills ids/level/hp) → broadcast → Qwen streams the opening scene → the autonomous play loop starts.
 
 Each round:
 1. Drain any Voice-from-the-Void utterances into in-world context for this round.
-2. Player seat (Gemma) declares an intent.
-3. Engine rolls a seeded d20, then the DM (Gemma) adjudicates intent + roll into `Adjudication` deltas.
-4. Engine applies deltas (clamps, death, XP and engine-owned level-ups), broadcasts state, emits a `mechanics` event (roll + changes).
-5. Pipelined: Narrator (Qwen) streams the player beat while the DM (Gemma) adjudicates the monsters concurrently; then monsters are applied and narrated.
-6. `finalizeIfEnded` ends the game on player death (defeat) or last adversary down (victory); the Narrator streams a fitted closing passage.
+2. Every living player seat (Gemma) declares an intent concurrently, like simultaneous initiative.
+3. Resolve players in order: engine rolls a seeded d20, the DM (Gemma) adjudicates that player's intent + roll into `Adjudication` deltas, the engine applies them (clamps, death, XP and engine-owned level-ups), broadcasts state, and emits a `mechanics` event. Sequential so the second player's outcome accounts for the first's.
+4. Pipelined: Narrator (Qwen) streams the party's beat while the DM (Gemma) adjudicates the monsters concurrently; then monsters are applied and narrated.
+5. `finalizeIfEnded` ends the game on a party wipe (defeat) or last adversary down (victory); the Narrator streams a fitted closing passage.
 
 Event types on the wire (see `internal/transport/events.go`): `hello`, `agent_status`, `action`, `mechanics`, `void`, `narration`, `state`, `log`, `error`.
 

@@ -126,7 +126,7 @@ export interface Item {
  */
 export interface WorldgenResult {
   location: Location;
-  player: WorldgenPlayer;
+  players: WorldgenPlayer[];
   monsters: WorldgenMonster[];
 }
 export interface WorldgenPlayer {

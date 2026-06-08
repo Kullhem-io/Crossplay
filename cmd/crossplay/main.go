@@ -32,7 +32,7 @@ func main() {
 		envOr("QWEN_MODEL", "unsloth/Qwen3.6-27B-MTP-GGUF:UD-Q6_K_XL"), 1))
 	sched.Register(agents.NewOpenAIBrain(engine.BrainGemma,
 		envOr("GEMMA_URL", "http://127.0.0.1:8004/v1"),
-		envOr("GEMMA_MODEL", "unsloth/gemma-4-12B-it-qat-GGUF"), 2))
+		envOr("GEMMA_MODEL", "unsloth/gemma-4-12B-it-qat-GGUF"), 3))
 
 	hub := transport.NewHub()
 	game := engine.New(sched, hub.Broadcast)

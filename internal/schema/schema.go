@@ -90,6 +90,28 @@ func (g *GameState) Player() *Entity {
 	return nil
 }
 
+// Players returns pointers to all player entities (the party).
+func (g *GameState) Players() []*Entity {
+	var out []*Entity
+	for i := range g.Entities {
+		if g.Entities[i].Kind == KindPlayer {
+			out = append(out, &g.Entities[i])
+		}
+	}
+	return out
+}
+
+// LivingPlayers returns pointers to alive player entities.
+func (g *GameState) LivingPlayers() []*Entity {
+	var out []*Entity
+	for i := range g.Entities {
+		if g.Entities[i].Kind == KindPlayer && g.Entities[i].Alive {
+			out = append(out, &g.Entities[i])
+		}
+	}
+	return out
+}
+
 // LivingMonsters returns pointers to alive monster entities.
 func (g *GameState) LivingMonsters() []*Entity {
 	var out []*Entity

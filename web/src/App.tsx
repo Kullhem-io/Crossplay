@@ -3,12 +3,11 @@ import { useCrossplay } from './useCrossplay'
 import type { AgentStatus, Entity, TranscriptEntry } from './protocol'
 import './App.css'
 
-// The three seats shown as live lanes. (M0: static roster; later this comes
-// from the engine so added players appear automatically.)
-const LANES: { seat: string; label: string; brain: string }[] = [
+// Fixed seats always shown; player lanes are derived from the ledger so the
+// party (one or more players) appears automatically.
+const FIXED_LANES: { seat: string; label: string; brain: string }[] = [
   { seat: 'narrator', label: 'Narrator', brain: 'Qwen' },
   { seat: 'dm', label: 'Dungeon Master', brain: 'Gemma · low temp' },
-  { seat: 'player-1', label: 'Player 1', brain: 'Gemma · high temp' },
 ]
 
 export default function App() {
@@ -17,6 +16,14 @@ export default function App() {
   const [voidText, setVoidText] = useState('')
   const started = state != null
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  const playerLanes = (state?.entities ?? [])
+    .filter((e) => e.kind === 'player')
+    .map((e) => ({ seat: e.id, label: e.name, brain: 'Gemma · high temp' }))
+  const lanes = [
+    ...FIXED_LANES,
+    ...(playerLanes.length ? playerLanes : [{ seat: 'player-1', label: 'Player', brain: 'Gemma · high temp' }]),
+  ]
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -40,7 +47,7 @@ export default function App() {
       </header>
 
       <section className="lanes">
-        {LANES.map((l) => (
+        {lanes.map((l) => (
           <Lane key={l.seat} label={l.label} brain={l.brain} status={seats[l.seat]} />
         ))}
       </section>

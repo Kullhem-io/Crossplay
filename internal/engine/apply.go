@@ -64,9 +64,8 @@ func (g *Game) finalizeIfEnded() bool {
 	if g.state == nil || g.state.Phase != schema.PhasePlaying {
 		return false
 	}
-	p := g.state.Player()
 	switch {
-	case p == nil || !p.Alive:
+	case len(g.state.LivingPlayers()) == 0:
 		g.state.Phase = schema.PhaseGameOver
 		g.state.Outcome = schema.OutcomeDefeat
 	case len(g.state.LivingMonsters()) == 0:

@@ -5,7 +5,7 @@ package schema
 // GameState from it, models never construct the ledger directly.
 type WorldgenResult struct {
 	Location Location          `json:"location"`
-	Player   WorldgenPlayer    `json:"player"`
+	Players  []WorldgenPlayer  `json:"players"`
 	Monsters []WorldgenMonster `json:"monsters"`
 }
 
@@ -38,28 +38,31 @@ var WorldgenSchema = []byte(`{
       },
       "required": ["name", "description"]
     },
-    "player": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "name": { "type": "string" },
-        "class": { "type": "string" },
-        "desc": { "type": "string" },
-        "maxHp": { "type": "integer", "minimum": 1 },
-        "inventory": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "name": { "type": "string" },
-              "qty": { "type": "integer", "minimum": 1 }
-            },
-            "required": ["name", "qty"]
+    "players": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "class": { "type": "string" },
+          "desc": { "type": "string" },
+          "maxHp": { "type": "integer", "minimum": 1 },
+          "inventory": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": { "type": "string" },
+                "qty": { "type": "integer", "minimum": 1 }
+              },
+              "required": ["name", "qty"]
+            }
           }
-        }
-      },
-      "required": ["name", "class", "desc", "maxHp", "inventory"]
+        },
+        "required": ["name", "class", "desc", "maxHp", "inventory"]
+      }
     },
     "monsters": {
       "type": "array",
@@ -75,5 +78,5 @@ var WorldgenSchema = []byte(`{
       }
     }
   },
-  "required": ["location", "player", "monsters"]
+  "required": ["location", "players", "monsters"]
 }`)

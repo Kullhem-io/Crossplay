@@ -44,7 +44,7 @@ func (g *Game) Start(ctx context.Context, topic string) error {
 
 func (g *Game) worldgen(ctx context.Context, topic string) (*schema.WorldgenResult, error) {
 	msgs := []agents.Message{
-		{Role: "system", Content: "You design the opening of an interactive story. Given a world topic, invent a vivid starting location, one fitting main character, and 1 to 3 adversaries or hazards that genuinely belong in that place (a person, an animal, a machine, an environmental danger, whatever suits it). " + genreRule + " Keep HP values in the 8 to 30 range. Output only the requested JSON."},
+		{Role: "system", Content: "You design the opening of an interactive story. Given a world topic, invent a vivid starting location, exactly two distinct player characters who form a party fitting the world (different names, classes, and personalities), and 1 to 3 adversaries or hazards that genuinely belong in that place (a person, an animal, a machine, an environmental danger, whatever suits it). " + genreRule + " Keep HP values in the 8 to 30 range. Output only the requested JSON."},
 		{Role: "user", Content: "World topic: " + topic},
 	}
 	raw, err := g.sched.Complete(ctx, BrainQwen, msgs, agents.CallOpts{
@@ -75,25 +75,34 @@ func buildState(topic string, r *schema.WorldgenResult) *schema.GameState {
 		return n
 	}
 
-	player := schema.Entity{
-		ID:        SeatPlayer1,
-		Name:      orDefault(r.Player.Name, "Adventurer"),
-		Kind:      schema.KindPlayer,
-		Class:     orDefault(r.Player.Class, "Adventurer"),
-		Level:     1,
-		XP:        0,
-		MaxHP:     clampHP(r.Player.MaxHP),
-		Alive:     true,
-		Status:    []string{},
-		Inventory: r.Player.Inventory,
-		Desc:      r.Player.Desc,
-	}
-	player.HP = player.MaxHP
-	if player.Inventory == nil {
-		player.Inventory = []schema.Item{}
+	// Fall back to a lone adventurer if worldgen somehow returned no party.
+	wps := r.Players
+	if len(wps) == 0 {
+		wps = []schema.WorldgenPlayer{{Name: "Adventurer", Class: "Adventurer", MaxHP: 20}}
 	}
 
-	entities := []schema.Entity{player}
+	var entities []schema.Entity
+	for i, wp := range wps {
+		p := schema.Entity{
+			ID:        fmt.Sprintf("player-%d", i+1),
+			Name:      orDefault(wp.Name, fmt.Sprintf("Adventurer %d", i+1)),
+			Kind:      schema.KindPlayer,
+			Class:     orDefault(wp.Class, "Adventurer"),
+			Level:     1,
+			XP:        0,
+			MaxHP:     clampHP(wp.MaxHP),
+			Alive:     true,
+			Status:    []string{},
+			Inventory: wp.Inventory,
+			Desc:      wp.Desc,
+		}
+		p.HP = p.MaxHP
+		if p.Inventory == nil {
+			p.Inventory = []schema.Item{}
+		}
+		entities = append(entities, p)
+	}
+
 	for i, m := range r.Monsters {
 		e := schema.Entity{
 			ID:        fmt.Sprintf("monster-%d", i+1),

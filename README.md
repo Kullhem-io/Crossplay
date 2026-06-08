@@ -21,7 +21,7 @@ See [CLAUDE.md](CLAUDE.md) for the full architecture and [ROADMAP.md](ROADMAP.md
 
 ## What works today
 
-You give it a topic and it plays itself: Qwen builds a world true to that topic (a locker room gives you a bully and a burst pipe, not goblins), a Gemma player acts in character, a Gemma referee turns each action plus a seeded d20 into real ledger changes, and Qwen narrates the result. You watch three live agent lanes, HP and XP bars, and a per-beat roll-and-damage readout, and you can whisper into the void to nudge the scene. Characters can level up, and the story reaches a real victory or defeat ending with a closing passage. You are a spectator for now; taking a seat yourself is on the roadmap.
+You give it a topic and it plays itself: Qwen builds a world true to that topic (a locker room gives you a bully and a burst pipe, not goblins), a two-person Gemma party acts in character (each member its own seat, deciding in parallel), a Gemma referee turns each action plus a seeded d20 into real ledger changes, and Qwen narrates the result. You watch three live agent lanes, HP and XP bars, and a per-beat roll-and-damage readout, and you can whisper into the void to nudge the scene. Characters can level up, and the story reaches a real victory or defeat ending with a closing passage. You are a spectator for now; taking a seat yourself is on the roadmap.
 
 ## Run it (dev)
 
@@ -43,4 +43,4 @@ produces `web/dist`, which the Go server serves automatically.
 ### Requires local LLM servers (OpenAI-compatible)
 
 - **Qwen** on `127.0.0.1:8001` (serial, 1 concurrent), Narrator / world-building
-- **Gemma** on `127.0.0.1:8004` with `--parallel 2`, DM (low temp) + Player (high temp)
+- **Gemma** on `127.0.0.1:8004` with `--parallel 3`, DM (low temp) + the player party (high temp)
