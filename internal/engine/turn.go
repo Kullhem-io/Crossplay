@@ -52,7 +52,9 @@ func (g *Game) playLoop(ctx context.Context) {
 // runRound is one player beat: intent -> roll -> DM ruling -> apply -> narrate.
 // (Monsters act in M4.)
 func (g *Game) runRound(ctx context.Context) error {
-	rctx, cancel := context.WithTimeout(ctx, 180*time.Second)
+	// Generous round budget: a round can legitimately wait on a human at the
+	// keyboard. The per-human-turn window below is the real limit.
+	rctx, cancel := context.WithTimeout(ctx, 480*time.Second)
 	defer cancel()
 
 	// 0. Pull any Voice-from-the-Void utterances; they ride along as in-world
@@ -179,7 +181,10 @@ func (g *Game) bumpRound() {
 func (g *Game) playerIntent(ctx context.Context, p schema.Entity, voidCtx string) (string, error) {
 	if g.brainFor(p.ID) == BrainHuman {
 		g.seat(p.ID, BrainHuman, "thinking")
-		hctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+		// Wait a long while for the person; the AI only steps in if they have
+		// clearly walked away, so a human's words are never overwritten while
+		// they are still deciding.
+		hctx, cancel := context.WithTimeout(ctx, 240*time.Second)
 		txt, err := g.sched.Complete(hctx, BrainHuman, nil, agents.CallOpts{Seat: p.ID, Priority: 60})
 		cancel()
 		g.seat(p.ID, BrainHuman, "idle")

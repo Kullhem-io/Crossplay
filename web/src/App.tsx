@@ -137,19 +137,20 @@ export default function App() {
       {playing && (
         <section className="playerbar">
           {myTurn ? (
-            <>
+            <div className="your-turn">
+              <span className="turn-badge">Your turn</span>
               <input
                 className="turn-input"
                 value={turnText}
                 onChange={(e) => setTurnText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && onTurn()}
-                placeholder={`You are ${myName}. What do you do?`}
+                placeholder={`What does ${myName} do? (in-character action)`}
                 autoFocus
               />
               <button onClick={onTurn} disabled={conn !== 'open'}>
                 Act
               </button>
-            </>
+            </div>
           ) : mySeat ? (
             <div className="player-status">
               <span>
@@ -198,10 +199,19 @@ export default function App() {
           value={voidText}
           onChange={(e) => setVoidText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && onVoid()}
-          placeholder={started ? 'Speak into the void…' : 'Begin a world to speak into the void'}
-          disabled={!started || state!.phase === 'game_over'}
+          placeholder={
+            myTurn
+              ? 'It is your turn, act in the box above'
+              : started
+                ? 'Speak into the void (an unseen voice, not your action)…'
+                : 'Begin a world to speak into the void'
+          }
+          disabled={!started || myTurn || state!.phase === 'game_over'}
         />
-        <button onClick={onVoid} disabled={conn !== 'open' || !started || state!.phase === 'game_over'}>
+        <button
+          onClick={onVoid}
+          disabled={conn !== 'open' || !started || myTurn || state!.phase === 'game_over'}
+        >
           Whisper
         </button>
       </footer>

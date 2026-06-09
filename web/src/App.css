@@ -302,6 +302,32 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   align-items: center;
   flex-wrap: wrap;
 }
+.your-turn {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  background: rgba(110, 231, 168, 0.08);
+  border: 1px solid #2f5a45;
+  border-radius: 10px;
+  padding: 8px;
+  animation: turnglow 1.8s ease-in-out infinite;
+}
+@keyframes turnglow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(110, 231, 168, 0); }
+  50% { box-shadow: 0 0 18px -4px rgba(110, 231, 168, 0.5); }
+}
+.turn-badge {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: #0a0e17;
+  background: #6ee7a8;
+  padding: 4px 9px;
+  border-radius: 999px;
+}
 .playerbar .turn-input { flex: 1; border-color: #6ee7a8; }
 .playerbar .turn-input:focus { border-color: #6ee7a8; box-shadow: 0 0 0 1px #6ee7a8; }
 /* Primary action buttons in the bar: green fill, dark text. */
