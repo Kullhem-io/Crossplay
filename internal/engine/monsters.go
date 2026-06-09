@@ -107,7 +107,7 @@ func (g *Game) narrateMonsters(ctx context.Context, outcomes []string) error {
 	g.seat(SeatNarrator, BrainQwen, "thinking")
 	defer g.seat(SeatNarrator, BrainQwen, "idle")
 
-	sys := "You are the Narrator of an interactive story. Dramatize the adversaries' turn in vivid prose, second person toward the player, present tense, 1 to 2 short paragraphs. " + genreRule + " Stay consistent with the stated outcomes; invent no extra damage, deaths, or items, and do not break character."
+	sys := "You are the Narrator of an interactive story. Dramatize the adversaries' turn in vivid prose, present tense. " + narratorStyle + " " + genreRule + " Keep it tight: usually a single short paragraph, a second only for a big moment. Stay consistent with the stated outcomes; invent no extra damage, deaths, or items, and do not break character."
 	user := fmt.Sprintf("%s\nOn the enemies' turn:\n- %s\nNarrate this.", sceneBrief(st), strings.Join(outcomes, "\n- "))
 	return g.streamNarration(ctx, []agents.Message{
 		{Role: "system", Content: sys},

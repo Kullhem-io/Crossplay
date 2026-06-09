@@ -31,6 +31,10 @@ const (
 // prompts avoid those and lean on this rule.
 const genreRule = "Honor the topic's setting, era, genre, and tone exactly. If it is modern, mundane, or otherwise non-fantasy, keep it grounded in that reality. Do not default to medieval fantasy, and never add magic, monsters, or archaic gear unless the topic clearly calls for them. The character, the adversaries or hazards, and the items must plausibly belong to that world."
 
+// narratorStyle keeps the prose clear about who is who. With a whole party in
+// the scene, second-person "you" is ambiguous, so the narrator names people.
+const narratorStyle = "Refer to the characters by name in the third person. Do not address anyone as \"you\", since several characters share the scene."
+
 // Game holds the canonical state and orchestrates seats. One per process for now.
 type Game struct {
 	mu          sync.Mutex

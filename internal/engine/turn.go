@@ -256,7 +256,7 @@ func (g *Game) adjudicate(ctx context.Context, actorID, actorName, intent string
 // narratePartyBeat streams Qwen's prose for the whole party's turn at once.
 func (g *Game) narratePartyBeat(ctx context.Context, beats []playerBeat, voidCtx string) error {
 	st := g.Snapshot()
-	sys := "You are the Narrator of an interactive story. Dramatize the party's turn in vivid prose, present tense, addressing the characters by name, 1 to 2 short paragraphs. " + genreRule + " Weave the members' actions into one flowing moment. Stay consistent with the facts given; do not invent damage, deaths, or items beyond what's stated, and do not break character. If a disembodied voice is mentioned, weave it in as an eerie phenomenon without acknowledging its source."
+	sys := "You are the Narrator of an interactive story. Dramatize the party's turn in vivid prose, present tense, weaving the members' actions into one flowing moment. " + narratorStyle + " " + genreRule + " Keep it tight: usually a single short paragraph, a second only for a big moment. Stay consistent with the facts given; do not invent damage, deaths, or items beyond what's stated, and do not break character. If a disembodied voice is mentioned, weave it in as an eerie phenomenon without acknowledging its source."
 
 	var parts []string
 	for _, b := range beats {

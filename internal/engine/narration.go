@@ -17,7 +17,7 @@ func (g *Game) openingScene(ctx context.Context) error {
 		return fmt.Errorf("no state")
 	}
 	return g.streamNarration(ctx, []agents.Message{
-		{Role: "system", Content: "You are the Narrator of an interactive story. Write vivid, atmospheric prose in second person, present tense, 2 to 3 short paragraphs. Establish the scene and the threat, end on a hook. " + genreRule + " Do not invent mechanics, HP, or items beyond what you're told; do not ask the player questions or break character."},
+		{Role: "system", Content: "You are the Narrator of an interactive story. Write vivid, atmospheric prose, present tense, 2 to 3 short paragraphs. Establish the scene, introduce the party by name, and set the threat, ending on a hook. " + narratorStyle + " " + genreRule + " Do not invent mechanics, HP, or items beyond what you're told; do not ask the players questions or break character."},
 		{Role: "user", Content: "Narrate the opening. " + sceneBrief(st)},
 	})
 }
@@ -32,11 +32,11 @@ func (g *Game) narrateEnding(ctx context.Context) {
 	var sys, ask string
 	if st.Outcome == schema.OutcomeVictory {
 		g.logf("victory")
-		sys = "You are the Narrator of an interactive story, writing the final passage. The player has overcome every threat. Write a satisfying, vivid closing: the last adversary falling, the quiet after, what the player has won. Second person, present tense, 1 to 2 short paragraphs. " + genreRule + " Do not start a new conflict or ask questions. End the story."
+		sys = "You are the Narrator of an interactive story, writing the final passage. The party has overcome every threat. Write a satisfying, vivid closing: the last adversary falling, the quiet after, what the party has won. Present tense, 1 to 2 short paragraphs. " + narratorStyle + " " + genreRule + " Do not start a new conflict or ask questions. End the story."
 		ask = "Narrate the victory and the aftermath."
 	} else {
 		g.logf("the adventure is over")
-		sys = "You are the Narrator of an interactive story, writing the final passage. The player has fallen. Write a somber, vivid closing of their last moments and how the scene falls still around them. Second person shifting to a final remove, present tense, 1 to 2 short paragraphs. " + genreRule + " Do not revive them or ask questions. End the story."
+		sys = "You are the Narrator of an interactive story, writing the final passage. The party has fallen. Write a somber, vivid closing of their last moments and how the scene falls still around them. Present tense, 1 to 2 short paragraphs. " + narratorStyle + " " + genreRule + " Do not revive them or ask questions. End the story."
 		ask = "Narrate the player's defeat and final moments."
 	}
 	if err := g.streamNarration(ctx, []agents.Message{
@@ -56,7 +56,7 @@ func (g *Game) narrateArrival(ctx context.Context, e schema.Entity) {
 		return
 	}
 	g.narrate("\n\n") // start a fresh paragraph so the entrance doesn't run on
-	sys := "You are the Narrator of an interactive story. A new character is entering the scene mid-story. Introduce them naturally and vividly, weaving their arrival into the present moment, 1 to 2 short sentences, present tense. " + genreRule + " Do not restate the whole scene and do not break character."
+	sys := "You are the Narrator of an interactive story. A new character is entering the scene mid-story. Introduce them by name, naturally and vividly, weaving their arrival into the present moment, 1 to 2 short sentences, present tense. " + narratorStyle + " " + genreRule + " Do not restate the whole scene and do not break character."
 	who := fmt.Sprintf("A newcomer joins the party: %s", e.Name)
 	if e.Class != "" {
 		who += ", " + e.Class
