@@ -151,6 +151,20 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
+.ent-items {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ent-item {
+  font-size: 0.68rem;
+  color: #b9c0d4;
+  background: #0d111a;
+  border: 1px solid #222838;
+  border-radius: 6px;
+  padding: 1px 6px;
+}
 .setup {
   background: #11151f;
   border: 1px solid #222838;
@@ -290,7 +304,8 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 .playerbar .turn-input { flex: 1; border-color: #6ee7a8; }
 .playerbar .turn-input:focus { border-color: #6ee7a8; box-shadow: 0 0 0 1px #6ee7a8; }
-.playerbar button { background: #6ee7a8; }
+/* Primary action buttons in the bar: green fill, dark text. */
+.playerbar button { background: #6ee7a8; color: #0a0e17; }
 .player-status {
   display: flex;
   align-items: center;
@@ -303,8 +318,9 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .player-status strong { color: #6ee7a8; }
 .join-form { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
 .join-form input { flex: 1; min-width: 140px; }
-.join-cta { background: transparent; color: #6ee7a8; border: 1px dashed #2f5a45; }
-button.ghost { background: transparent; color: #8a93a8; border: 1px solid #2a3142; font-weight: 500; }
+/* The join CTA and ghost buttons override the green fill (scoped to win). */
+.playerbar .join-cta { background: transparent; color: #6ee7a8; border: 1px dashed #2f5a45; }
+.playerbar button.ghost { background: transparent; color: #8a93a8; border: 1px solid #2a3142; font-weight: 500; }
 
 /* Void bar */
 .voidbar {

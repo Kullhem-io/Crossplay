@@ -1,7 +1,9 @@
 package engine
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/Kullhem-io/Crossplay/internal/schema"
 	"github.com/Kullhem-io/Crossplay/internal/transport"
@@ -40,6 +42,12 @@ func (g *Game) Join(name, class, desc string) {
 	g.broadcastState()
 	g.emit(transport.Event{Type: transport.EvJoined,
 		Payload: map[string]any{"seat": id, "name": e.Name}})
+
+	// Write them into the story (Qwen is serial, so this queues behind any beat
+	// currently narrating).
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+	g.narrateArrival(ctx, e)
 }
 
 // Leave hands a human seat back to the AI. The character stays in the story and

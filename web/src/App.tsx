@@ -286,6 +286,16 @@ function EntityCard({ e }: { e: Entity }) {
       )}
       {e.desc && <div className="ent-desc">{e.desc}</div>}
       {e.status.length > 0 && <div className="ent-status">{e.status.join(', ')}</div>}
+      {e.inventory.length > 0 && (
+        <div className="ent-items">
+          {e.inventory.map((it, i) => (
+            <span key={i} className="ent-item">
+              {it.name}
+              {it.qty > 1 ? ` ×${it.qty}` : ''}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

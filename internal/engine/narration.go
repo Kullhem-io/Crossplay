@@ -47,6 +47,31 @@ func (g *Game) narrateEnding(ctx context.Context) {
 	}
 }
 
+// narrateArrival streams a short beat introducing a newly joined character into
+// the current scene, so a human (or any added party member) is written into the
+// story rather than just appearing on the ledger.
+func (g *Game) narrateArrival(ctx context.Context, e schema.Entity) {
+	st := g.Snapshot()
+	if st == nil {
+		return
+	}
+	g.narrate("\n\n") // start a fresh paragraph so the entrance doesn't run on
+	sys := "You are the Narrator of an interactive story. A new character is entering the scene mid-story. Introduce them naturally and vividly, weaving their arrival into the present moment, 1 to 2 short sentences, present tense. " + genreRule + " Do not restate the whole scene and do not break character."
+	who := fmt.Sprintf("A newcomer joins the party: %s", e.Name)
+	if e.Class != "" {
+		who += ", " + e.Class
+	}
+	if e.Desc != "" {
+		who += " (" + e.Desc + ")"
+	}
+	if err := g.streamNarration(ctx, []agents.Message{
+		{Role: "system", Content: sys},
+		{Role: "user", Content: joinNonEmpty("\n", sceneBrief(st), who+".", "Narrate their entrance into the current scene.")},
+	}); err != nil && ctx.Err() == nil {
+		g.errf(fmt.Errorf("narrate arrival: %w", err))
+	}
+}
+
 // streamNarration runs a narrator (Qwen) call and streams its tokens out,
 // managing the seat lane status. It retries once if the connection drops before
 // any tokens arrive (e.g. transient GPU contention / EOF); a mid-stream drop
