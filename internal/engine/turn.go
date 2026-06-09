@@ -113,7 +113,7 @@ func (g *Game) runRound(ctx context.Context) error {
 			}
 			continue
 		}
-		changes := g.applyAdjudication(adj)
+		changes := g.applyAdjudication(adj, p.ID)
 		g.broadcastState()
 		g.emit(transport.Event{Type: transport.EvMechanics,
 			Payload: transport.Mechanics{Seat: p.ID, Name: p.Name, Roll: roll, Changes: changes}})

@@ -60,7 +60,7 @@ func (g *Game) resolveMonsters(ctx context.Context, results []*monsterResult) {
 		}
 		g.emit(transport.Event{Type: transport.EvAction,
 			Payload: transport.Action{Seat: r.id, Name: r.name, Text: r.adj.Outcome}})
-		changes := g.applyAdjudication(r.adj)
+		changes := g.applyAdjudication(r.adj, "")
 		g.emit(transport.Event{Type: transport.EvMechanics,
 			Payload: transport.Mechanics{Seat: r.id, Name: r.name, Roll: r.roll, Changes: changes}})
 		outcomes = append(outcomes, r.name+": "+r.adj.Outcome)

@@ -8,13 +8,20 @@ import (
 )
 
 // applyAdjudication applies a DM ruling to the ledger under lock, enforcing
-// invariants (HP bounds, non-negative item counts, death). Returns human log
-// lines describing what actually changed. Broadcasting is the caller's job.
-func (g *Game) applyAdjudication(adj *schema.Adjudication) []string {
+// invariants (HP bounds, non-negative item counts, death) and returning human
+// log lines. actor is the id of the acting entity for a player turn (empty for
+// the monster phase); self-rewards (XP, picked-up items) are pinned to the actor
+// because the DM routinely mis-targets them onto a teammate. Broadcasting is the
+// caller's job.
+func (g *Game) applyAdjudication(adj *schema.Adjudication, actor string) []string {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if g.state == nil {
 		return nil
+	}
+
+	if actor != "" {
+		g.pinSelfRewards(adj, actor)
 	}
 
 	var logs []string
@@ -75,6 +82,24 @@ func (g *Game) finalizeIfEnded() bool {
 		return false
 	}
 	return true
+}
+
+// pinSelfRewards rewrites a player's own gains to point at the acting player.
+// XP always belongs to the actor; a picked-up item belongs to the actor unless
+// it was clearly handed to a monster. Assumes g.mu held.
+func (g *Game) pinSelfRewards(adj *schema.Adjudication, actor string) {
+	for i := range adj.Deltas {
+		d := &adj.Deltas[i]
+		switch d.Type {
+		case schema.DeltaXP:
+			d.Target = actor
+		case schema.DeltaItemAdd:
+			tgt := g.resolveTarget(d.Target)
+			if tgt == nil || tgt.Kind == schema.KindPlayer {
+				d.Target = actor
+			}
+		}
+	}
 }
 
 // applyDelta mutates one entity; assumes g.mu held. Returns a log line or "".

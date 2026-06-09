@@ -27,7 +27,7 @@ func TestDamageClampsAndKills(t *testing.T) {
 	g := newTestGame(player(20, 20), monster("monster-1", "Goblin", 5, 12))
 	g.applyAdjudication(&schema.Adjudication{Deltas: []schema.Delta{
 		{Type: schema.DeltaDamage, Target: "monster-1", Amount: 99},
-	}})
+	}}, "")
 	m := g.state.FindEntity("monster-1")
 	if m.HP != 0 {
 		t.Fatalf("expected HP clamped to 0, got %d", m.HP)
@@ -41,7 +41,7 @@ func TestHealCapsAtMax(t *testing.T) {
 	g := newTestGame(player(8, 20))
 	g.applyAdjudication(&schema.Adjudication{Deltas: []schema.Delta{
 		{Type: schema.DeltaHeal, Target: SeatPlayer1, Amount: 100},
-	}})
+	}}, "")
 	if hp := g.state.Player().HP; hp != 20 {
 		t.Fatalf("expected heal capped at maxHP 20, got %d", hp)
 	}
@@ -51,7 +51,7 @@ func TestXPTriggersLevelUp(t *testing.T) {
 	g := newTestGame(player(20, 20)) // level 1 needs 10 XP
 	g.applyAdjudication(&schema.Adjudication{Deltas: []schema.Delta{
 		{Type: schema.DeltaXP, Target: SeatPlayer1, Amount: 12},
-	}})
+	}}, "")
 	p := g.state.Player()
 	if p.Level != 2 {
 		t.Fatalf("expected level 2, got %d", p.Level)
@@ -68,7 +68,7 @@ func TestFinalizeDefeatOnPlayerDeath(t *testing.T) {
 	g := newTestGame(player(3, 20), monster("monster-1", "Goblin", 10, 10))
 	g.applyAdjudication(&schema.Adjudication{Deltas: []schema.Delta{
 		{Type: schema.DeltaDamage, Target: SeatPlayer1, Amount: 5},
-	}})
+	}}, "")
 	if !g.finalizeIfEnded() {
 		t.Fatal("expected game to end on player death")
 	}
@@ -85,7 +85,7 @@ func TestFinalizeVictoryWhenAllMonstersDead(t *testing.T) {
 	g := newTestGame(player(20, 20), monster("monster-1", "Goblin", 4, 12))
 	g.applyAdjudication(&schema.Adjudication{Deltas: []schema.Delta{
 		{Type: schema.DeltaDamage, Target: "monster-1", Amount: 10},
-	}})
+	}}, "")
 	if !g.finalizeIfEnded() {
 		t.Fatal("expected victory when the last monster falls")
 	}
@@ -99,7 +99,7 @@ func TestRemovalStatusTakesFoeOutButNotPlayer(t *testing.T) {
 	// DM "defeats" the foe with a status while it still has HP.
 	g.applyAdjudication(&schema.Adjudication{Deltas: []schema.Delta{
 		{Type: schema.DeltaStatus, Target: "monster-1", Status: "destroyed"},
-	}})
+	}}, "")
 	m := g.state.FindEntity("monster-1")
 	if m.Alive {
 		t.Fatal("expected foe with a removal status to be out of the fight")
@@ -112,9 +112,27 @@ func TestRemovalStatusTakesFoeOutButNotPlayer(t *testing.T) {
 	g2 := newTestGame(player(20, 20), monster("monster-1", "Goblin", 8, 12))
 	g2.applyAdjudication(&schema.Adjudication{Deltas: []schema.Delta{
 		{Type: schema.DeltaStatus, Target: SeatPlayer1, Status: "subdued"},
-	}})
+	}}, "")
 	if !g2.state.Player().Alive {
 		t.Fatal("player should not die from a flavor status, only from 0 HP")
+	}
+}
+
+func TestSelfRewardsPinnedToActor(t *testing.T) {
+	mara := schema.Entity{ID: "player-2", Name: "Mara", Kind: schema.KindPlayer, Level: 1, HP: 20, MaxHP: 20, Alive: true}
+	g := newTestGame(player(20, 20), mara)
+	// player-1 acts, but the DM mis-targets the XP and item onto player-2.
+	g.applyAdjudication(&schema.Adjudication{Deltas: []schema.Delta{
+		{Type: schema.DeltaXP, Target: "player-2", Amount: 5},
+		{Type: schema.DeltaItemAdd, Target: "player-2", Item: "Brass Key", Qty: 1},
+	}}, SeatPlayer1)
+
+	p1, p2 := g.state.FindEntity(SeatPlayer1), g.state.FindEntity("player-2")
+	if p1.XP != 5 || p2.XP != 0 {
+		t.Fatalf("XP should pin to the actor: p1=%d p2=%d", p1.XP, p2.XP)
+	}
+	if len(p1.Inventory) != 1 || len(p2.Inventory) != 0 {
+		t.Fatalf("item should pin to the actor: p1=%+v p2=%+v", p1.Inventory, p2.Inventory)
 	}
 }
 
@@ -124,7 +142,7 @@ func TestItemCountsStayNonNegative(t *testing.T) {
 	g := newTestGame(p)
 	g.applyAdjudication(&schema.Adjudication{Deltas: []schema.Delta{
 		{Type: schema.DeltaItemRemove, Target: SeatPlayer1, Item: "Potion", Qty: 5},
-	}})
+	}}, "")
 	if len(g.state.Player().Inventory) != 0 {
 		t.Fatalf("expected item removed entirely, got %+v", g.state.Player().Inventory)
 	}
