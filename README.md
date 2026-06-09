@@ -21,7 +21,7 @@ See [CLAUDE.md](CLAUDE.md) for the full architecture and [ROADMAP.md](ROADMAP.md
 
 ## What works today
 
-You give it a topic and it plays itself: Qwen builds a world true to that topic (a locker room gives you a bully and a burst pipe, not goblins), a two-person Gemma party acts in character (each member its own seat, deciding in parallel), a Gemma referee turns each action plus a seeded d20 into real ledger changes, and Qwen narrates the result. You watch three live agent lanes, HP and XP bars, and a per-beat roll-and-damage readout, and you can whisper into the void to nudge the scene. Characters can level up, and the story reaches a real victory or defeat ending with a closing passage. You are a spectator for now; taking a seat yourself is on the roadmap.
+You give it a topic and it plays itself: Qwen builds a world true to that topic (a locker room gives you a bully and a burst pipe, not goblins), a two-person Gemma party acts in character (each member its own seat, deciding in parallel), a Gemma referee turns each action plus a seeded d20 into real ledger changes, and Qwen narrates the result. You watch a live lane per seat, HP and XP bars, and a per-beat roll-and-damage readout, and you can whisper into the void to nudge the scene. Characters can level up, and the story reaches a real victory or defeat ending with a closing passage. And you can step in yourself: join the party as your own character, type your actions on your turn, and leave whenever you like. If you go idle, the AI covers your character so the game never stalls.
 
 ## Run it (dev)
 

@@ -22,6 +22,7 @@ const (
 
 	BrainQwen  = "qwen-local"
 	BrainGemma = "gemma-local"
+	BrainHuman = "human"
 )
 
 // genreRule is appended to every creative prompt so the models honor whatever
@@ -34,8 +35,9 @@ const genreRule = "Honor the topic's setting, era, genre, and tone exactly. If i
 type Game struct {
 	mu          sync.Mutex
 	state       *schema.GameState
-	recent      []string // rolling beat summaries for model continuity
-	voidPending []string // queued Voice-from-the-Void utterances
+	recent      []string          // rolling beat summaries for model continuity
+	voidPending []string          // queued Voice-from-the-Void utterances
+	seatBrain   map[string]string // seat id -> brain id; absent means the default Gemma
 
 	sched *agents.Scheduler
 	emit  func(transport.Event)
@@ -49,10 +51,21 @@ type Game struct {
 func New(sched *agents.Scheduler, emit func(transport.Event)) *Game {
 	seed := uint64(time.Now().UnixNano())
 	return &Game{
-		sched: sched,
-		emit:  emit,
-		rng:   rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)),
+		sched:     sched,
+		emit:      emit,
+		rng:       rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)),
+		seatBrain: make(map[string]string),
 	}
+}
+
+// brainFor returns the brain bound to a seat, defaulting to Gemma.
+func (g *Game) brainFor(seat string) string {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if b, ok := g.seatBrain[seat]; ok {
+		return b
+	}
+	return BrainGemma
 }
 
 // d20 rolls a fair, seeded twenty-sided die. The engine owns all randomness.

@@ -27,10 +27,9 @@ M6) and a first game-feel pass are already done and on `main`.
   ending the game on victory. This is the prerequisite for real exploration.
 - **Speculative pre-build.** Once transitions exist, have Qwen generate the next
   area in the background while the current beat plays, so arriving is instant.
-- **Human as a player.** The `human` brain whose call awaits UI input is already
-  the planned path; wire a seat to it so a person can take a character.
-- **Multiple player seats.** More than one player brain (local models, an API
-  like Gemini, or a human), each its own context. Combat asks them in parallel.
+- **More seat types.** Multiple AI players and a human player both work now. Next
+  is binding a seat to an external API like Gemini (just another brain), and
+  letting more than one person join at once.
 - **Replay and persistence.** Store the RNG seed and the action log so a game can
   be replayed deterministically, and save or resume sessions.
 

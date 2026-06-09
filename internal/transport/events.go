@@ -19,6 +19,9 @@ const (
 	EvState       = "state"        // full or partial game state
 	EvLog         = "log"          // human-readable engine log line
 	EvError       = "error"        // something went wrong
+	EvAwaitInput  = "await_input"  // a human-controlled seat owes an action
+	EvJoined      = "joined"       // a human joined as a player (echoes the seat)
+	EvLeft        = "left"         // a human seat handed back to the AI
 )
 
 // Action is the payload for EvAction.
@@ -59,14 +62,20 @@ type Inbound struct {
 }
 
 // InboundPayload carries the union of fields any client message might send.
-// Kept flat for M0; will split per-type as the protocol grows.
 type InboundPayload struct {
 	Topic string `json:"topic,omitempty"` // for "start"
-	Text  string `json:"text,omitempty"`  // for "void"
+	Text  string `json:"text,omitempty"`  // for "void" and "player_input"
+	Seat  string `json:"seat,omitempty"`  // for "player_input" and "leave"
+	Name  string `json:"name,omitempty"`  // for "join"
+	Class string `json:"class,omitempty"` // for "join"
+	Desc  string `json:"desc,omitempty"`  // for "join"
 }
 
 // Client -> server message types.
 const (
-	MsgStart = "start" // begin a game with a world topic
-	MsgVoid  = "void"  // a Voice-from-the-Void utterance
+	MsgStart       = "start"        // begin a game with a world topic
+	MsgVoid        = "void"         // a Voice-from-the-Void utterance
+	MsgJoin        = "join"         // a human joins as a new player character
+	MsgPlayerInput = "player_input" // a human's action for their seat
+	MsgLeave       = "leave"        // a human hands their seat back to the AI
 )

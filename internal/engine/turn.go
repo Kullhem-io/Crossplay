@@ -173,8 +173,26 @@ func (g *Game) bumpRound() {
 	g.mu.Unlock()
 }
 
-// playerIntent asks one player seat (Gemma, high temp) for an in-character action.
+// playerIntent gets one player seat's action from whatever brain it is bound to.
+// A human seat is given a bounded window to answer; if they go idle, the AI
+// takes that turn so the round never stalls (the seat stays human).
 func (g *Game) playerIntent(ctx context.Context, p schema.Entity, voidCtx string) (string, error) {
+	if g.brainFor(p.ID) == BrainHuman {
+		g.seat(p.ID, BrainHuman, "thinking")
+		hctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+		txt, err := g.sched.Complete(hctx, BrainHuman, nil, agents.CallOpts{Seat: p.ID, Priority: 60})
+		cancel()
+		g.seat(p.ID, BrainHuman, "idle")
+		if err == nil && strings.TrimSpace(txt) != "" {
+			return strings.TrimSpace(txt), nil
+		}
+		g.logf(p.Name + " hesitates; the party acts for them")
+	}
+	return g.aiIntent(ctx, p, voidCtx)
+}
+
+// aiIntent asks a model (Gemma, high temp) for an in-character action.
+func (g *Game) aiIntent(ctx context.Context, p schema.Entity, voidCtx string) (string, error) {
 	persona := p.Desc
 	if persona == "" {
 		persona = "an adventurer"

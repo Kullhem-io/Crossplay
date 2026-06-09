@@ -94,6 +94,7 @@ The ledger types live in `internal/schema` and are the single source of truth: `
 - **M6 ✅** Agent-lane polish (round counter, game-over overlay) + pipelining: the player-beat narration (Qwen) runs concurrently with monster adjudication (Gemma) so both lanes light at once.
 
 Since the slice (post-M6):
+- **Party + human players:** worldgen seeds a two-character party; the turn loop runs every living player (intents gathered concurrently, resolved in order). A person can join as their own new character via the `human` brain (a Brain whose Stream blocks on a browser reply), bound per-seat through `seatBrain`/`brainFor`; an idle human falls back to the AI for that turn. Join/leave and the turn input are in the UI.
 - **Game feel:** player cards show class, level, an XP bar, and a one-line description; engine-owned XP and leveling (DM awards XP, engine crosses thresholds); per-beat `mechanics` chip (d20 roll + applied changes); monster actions colored distinctly from the player.
 - **Real endings:** victory (last adversary down) and defeat (player falls), each with a fitted closing passage from the Narrator and a victory/defeat overlay.
 - **Topic fidelity:** the `genreRule` keeps worlds true to the topic instead of drifting to medieval fantasy.

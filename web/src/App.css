@@ -281,6 +281,31 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 .log .muted, .muted { color: #5b6478; }
 
+/* Player bar (human join / turn input) */
+.playerbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.playerbar .turn-input { flex: 1; border-color: #6ee7a8; }
+.playerbar .turn-input:focus { border-color: #6ee7a8; box-shadow: 0 0 0 1px #6ee7a8; }
+.playerbar button { background: #6ee7a8; }
+.player-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  color: #8a93a8;
+  font-size: 0.86rem;
+}
+.player-status strong { color: #6ee7a8; }
+.join-form { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
+.join-form input { flex: 1; min-width: 140px; }
+.join-cta { background: transparent; color: #6ee7a8; border: 1px dashed #2f5a45; }
+button.ghost { background: transparent; color: #8a93a8; border: 1px solid #2a3142; font-weight: 500; }
+
 /* Void bar */
 .voidbar {
   display: flex;

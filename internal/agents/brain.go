@@ -23,6 +23,9 @@ type CallOpts struct {
 	// Priority orders queued calls on a saturated brain; higher runs first.
 	// Player/DM turns should outrank speculative narrator pre-builds.
 	Priority int
+	// Seat names the requesting seat. Model brains ignore it; the human brain
+	// uses it to route the request to the right person and reply.
+	Seat string
 }
 
 // Token is one streamed chunk. A Token with Err set is terminal; the channel

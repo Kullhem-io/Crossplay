@@ -24,6 +24,9 @@ export interface ServerEvent {
     | 'state'
     | 'log'
     | 'error'
+    | 'await_input'
+    | 'joined'
+    | 'left'
   payload?: unknown
 }
 
@@ -54,6 +57,13 @@ export interface TranscriptEntry {
 
 // Client -> server envelope.
 export interface ClientMessage {
-  type: 'start' | 'void'
-  payload: { topic?: string; text?: string }
+  type: 'start' | 'void' | 'join' | 'player_input' | 'leave'
+  payload: {
+    topic?: string
+    text?: string
+    seat?: string
+    name?: string
+    class?: string
+    desc?: string
+  }
 }

@@ -11,10 +11,19 @@ const FIXED_LANES: { seat: string; label: string; brain: string }[] = [
 ]
 
 export default function App() {
-  const { conn, seats, state, log, transcript, start, speakVoid } = useCrossplay()
+  const { conn, seats, state, log, transcript, mySeat, awaitingSeat, start, speakVoid, join, sendInput, leave } =
+    useCrossplay()
   const [topic, setTopic] = useState('')
   const [voidText, setVoidText] = useState('')
+  const [showJoin, setShowJoin] = useState(false)
+  const [joinName, setJoinName] = useState('')
+  const [joinClass, setJoinClass] = useState('')
+  const [joinDesc, setJoinDesc] = useState('')
+  const [turnText, setTurnText] = useState('')
   const started = state != null
+  const playing = started && state!.phase === 'playing'
+  const myName = mySeat ? state?.entities.find((e) => e.id === mySeat)?.name : undefined
+  const myTurn = mySeat != null && awaitingSeat === mySeat
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const playerLanes = (state?.entities ?? [])
@@ -34,6 +43,19 @@ export default function App() {
     if (!voidText.trim()) return
     speakVoid(voidText.trim())
     setVoidText('')
+  }
+  const onJoin = () => {
+    if (!joinName.trim()) return
+    join(joinName.trim(), joinClass.trim(), joinDesc.trim())
+    setShowJoin(false)
+    setJoinName('')
+    setJoinClass('')
+    setJoinDesc('')
+  }
+  const onTurn = () => {
+    if (!turnText.trim()) return
+    sendInput(turnText.trim())
+    setTurnText('')
   }
 
   return (
@@ -111,6 +133,65 @@ export default function App() {
           </div>
         </aside>
       </main>
+
+      {playing && (
+        <section className="playerbar">
+          {myTurn ? (
+            <>
+              <input
+                className="turn-input"
+                value={turnText}
+                onChange={(e) => setTurnText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && onTurn()}
+                placeholder={`You are ${myName}. What do you do?`}
+                autoFocus
+              />
+              <button onClick={onTurn} disabled={conn !== 'open'}>
+                Act
+              </button>
+            </>
+          ) : mySeat ? (
+            <div className="player-status">
+              <span>
+                You are <strong>{myName}</strong>. Waiting for your turn…
+              </span>
+              <button className="ghost" onClick={leave}>
+                Leave
+              </button>
+            </div>
+          ) : showJoin ? (
+            <div className="join-form">
+              <input
+                value={joinName}
+                onChange={(e) => setJoinName(e.target.value)}
+                placeholder="Character name"
+                autoFocus
+              />
+              <input
+                value={joinClass}
+                onChange={(e) => setJoinClass(e.target.value)}
+                placeholder="Class / role (optional)"
+              />
+              <input
+                value={joinDesc}
+                onChange={(e) => setJoinDesc(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && onJoin()}
+                placeholder="One-line description (optional)"
+              />
+              <button onClick={onJoin} disabled={conn !== 'open' || !joinName.trim()}>
+                Enter the story
+              </button>
+              <button className="ghost" onClick={() => setShowJoin(false)}>
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button className="join-cta" onClick={() => setShowJoin(true)}>
+              Join the party
+            </button>
+          )}
+        </section>
+      )}
 
       <footer className="voidbar">
         <input

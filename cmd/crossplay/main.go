@@ -35,6 +35,15 @@ func main() {
 		envOr("GEMMA_MODEL", "unsloth/gemma-4-12B-it-qat-GGUF"), 3))
 
 	hub := transport.NewHub()
+
+	// The human brain announces an awaited seat over the WebSocket and blocks
+	// until the browser sends that seat's action back.
+	human := agents.NewHumanBrain(engine.BrainHuman, func(seat string) {
+		hub.Broadcast(transport.Event{Type: transport.EvAwaitInput,
+			Payload: map[string]any{"seat": seat}})
+	})
+	sched.Register(human)
+
 	game := engine.New(sched, hub.Broadcast)
 
 	hub.OnMessage(func(msg transport.Inbound) {
@@ -51,6 +60,12 @@ func main() {
 				defer cancel()
 				game.Void(ctx, msg.Payload.Text)
 			}()
+		case transport.MsgJoin:
+			go game.Join(msg.Payload.Name, msg.Payload.Class, msg.Payload.Desc)
+		case transport.MsgPlayerInput:
+			human.Deliver(msg.Payload.Seat, msg.Payload.Text)
+		case transport.MsgLeave:
+			game.Leave(msg.Payload.Seat)
 		default:
 			log.Printf("unknown inbound type: %q", msg.Type)
 		}

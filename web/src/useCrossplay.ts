@@ -18,8 +18,13 @@ export interface CrossplayState {
   state: GameState | null
   log: string[]
   transcript: TranscriptEntry[]
+  mySeat: string | null // the seat this human controls, if any
+  awaitingSeat: string | null // a seat currently awaiting human input
   start: (topic: string) => void
   speakVoid: (text: string) => void
+  join: (name: string, klass: string, desc: string) => void
+  sendInput: (text: string) => void
+  leave: () => void
 }
 
 // useCrossplay owns the single WebSocket to the engine, auto-reconnects, and
@@ -30,6 +35,9 @@ export function useCrossplay(): CrossplayState {
   const [state, setState] = useState<GameState | null>(null)
   const [log, setLog] = useState<string[]>([])
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
+  const [mySeat, setMySeat] = useState<string | null>(null)
+  const [awaitingSeat, setAwaitingSeat] = useState<string | null>(null)
+  const mySeatRef = useRef<string | null>(null)
   const nextId = useRef(0)
   const wsRef = useRef<WebSocket | null>(null)
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -76,6 +84,8 @@ export function useCrossplay(): CrossplayState {
               ...t,
               { id: nextId.current++, kind: 'action', seat: a.seat, name: a.name, text: a.text },
             ])
+            // My seat's action landed (mine or an AI fallback): stop awaiting.
+            if (a.seat === mySeatRef.current) setAwaitingSeat(null)
             break
           }
           case 'mechanics': {
@@ -125,6 +135,28 @@ export function useCrossplay(): CrossplayState {
             if (p.message) setLog((l) => [...l, `⚠ ${p.message}`])
             break
           }
+          case 'await_input': {
+            const p = ev.payload as { seat?: string }
+            if (p.seat && p.seat === mySeatRef.current) setAwaitingSeat(p.seat)
+            break
+          }
+          case 'joined': {
+            const p = ev.payload as { seat?: string }
+            if (p.seat) {
+              mySeatRef.current = p.seat
+              setMySeat(p.seat)
+            }
+            break
+          }
+          case 'left': {
+            const p = ev.payload as { seat?: string }
+            if (p.seat && p.seat === mySeatRef.current) {
+              mySeatRef.current = null
+              setMySeat(null)
+              setAwaitingSeat(null)
+            }
+            break
+          }
         }
       }
     }
@@ -145,8 +177,39 @@ export function useCrossplay(): CrossplayState {
     (text: string) => send({ type: 'void', payload: { text } }),
     [send],
   )
+  const join = useCallback(
+    (name: string, klass: string, desc: string) =>
+      send({ type: 'join', payload: { name, class: klass, desc } }),
+    [send],
+  )
+  const sendInput = useCallback(
+    (text: string) => {
+      const seat = mySeatRef.current
+      if (!seat) return
+      send({ type: 'player_input', payload: { seat, text } })
+      setAwaitingSeat(null)
+    },
+    [send],
+  )
+  const leave = useCallback(() => {
+    const seat = mySeatRef.current
+    if (seat) send({ type: 'leave', payload: { seat } })
+  }, [send])
 
-  return { conn, seats, state, log, transcript, start, speakVoid }
+  return {
+    conn,
+    seats,
+    state,
+    log,
+    transcript,
+    mySeat,
+    awaitingSeat,
+    start,
+    speakVoid,
+    join,
+    sendInput,
+    leave,
+  }
 }
 
 export const SEAT_STATUS_FALLBACK: SeatStatus = 'idle'
