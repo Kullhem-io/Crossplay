@@ -85,8 +85,10 @@ func (g *Game) finalizeIfEnded() bool {
 }
 
 // pinSelfRewards rewrites a player's own gains to point at the acting player.
-// XP always belongs to the actor; a picked-up item belongs to the actor unless
-// it was clearly handed to a monster. Assumes g.mu held.
+// XP always belongs to the actor. A picked-up item belongs to the actor too,
+// with one exception: when the same ruling also removes that item from someone,
+// it is a deliberate hand-off (giver loses it, receiver gains it), so the DM's
+// target is honored. Assumes g.mu held.
 func (g *Game) pinSelfRewards(adj *schema.Adjudication, actor string) {
 	for i := range adj.Deltas {
 		d := &adj.Deltas[i]
@@ -95,11 +97,25 @@ func (g *Game) pinSelfRewards(adj *schema.Adjudication, actor string) {
 			d.Target = actor
 		case schema.DeltaItemAdd:
 			tgt := g.resolveTarget(d.Target)
+			if tgt != nil && tgt.Kind == schema.KindPlayer && tgt.ID != actor && itemAlsoRemoved(adj, d.Item) {
+				continue
+			}
 			if tgt == nil || tgt.Kind == schema.KindPlayer {
 				d.Target = actor
 			}
 		}
 	}
+}
+
+// itemAlsoRemoved reports whether the ruling removes the named item from
+// anyone, the signature of a hand-off rather than a mis-targeted pickup.
+func itemAlsoRemoved(adj *schema.Adjudication, item string) bool {
+	for _, d := range adj.Deltas {
+		if d.Type == schema.DeltaItemRemove && strings.EqualFold(strings.TrimSpace(d.Item), strings.TrimSpace(item)) {
+			return true
+		}
+	}
+	return false
 }
 
 // applyDelta mutates one entity; assumes g.mu held. Returns a log line or "".

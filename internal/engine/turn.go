@@ -64,6 +64,9 @@ func (g *Game) runRound(ctx context.Context) error {
 		g.remember("A disembodied voice echoed through the world.")
 	}
 	g.bumpRound()
+	// Push the new round number right away so clients can mark the round
+	// boundary in the transcript before any of its actions land.
+	g.broadcastState()
 
 	stillPlaying := func() bool {
 		s := g.Snapshot()
@@ -227,6 +230,7 @@ func (g *Game) adjudicate(ctx context.Context, actorID, actorName, intent string
 	sys := "You are the Game System (referee) for an interactive story. You decide the mechanical outcome of one party member's attempt and output it as JSON deltas. " + genreRule + " " +
 		"A d20 has already been rolled for the attempt: 1 is a critical failure, 10 to 11 is average, 20 is a critical success. Interpret the roll in context, a high roll succeeds well, a low roll fails or backfires. " +
 		"Target entities by their id. Keep damage proportional (typically 2 to 10). You may add status effects or grant/consume items freely, but only to the listed entities. " +
+		"If a character gives or passes an item to a companion, express it as two deltas: item_remove from the giver and item_add to the receiver. " +
 		"A foe leaves the fight only when its HP reaches 0: to finish or remove an enemy, deal damage that brings it to 0, do not merely tag it as defeated. Make decisive progress; do not let the same standoff repeat. " +
 		"Award the acting player XP (xp delta, typically 3 to 10, more for defeating a foe) when they make meaningful progress. Be deterministic and concise. Output only the JSON."
 

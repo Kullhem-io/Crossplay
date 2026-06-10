@@ -80,7 +80,7 @@ func (g *Game) resolveMonsters(ctx context.Context, results []*monsterResult) {
 func (g *Game) monsterTurn(ctx context.Context, m schema.Entity, roll int) (*schema.Adjudication, error) {
 	st := g.Snapshot()
 	sys := "You are the Game System controlling one adversary or hazard in an interactive story. Decide what it does on its turn and the mechanical result, as JSON deltas. " +
-		"A d20 has been rolled for it: 1 is a critical failure, 10 to 11 average, 20 a critical success. It acts according to its nature, usually against the player. " +
+		"A d20 has been rolled for it: 1 is a critical failure, 10 to 11 average, 20 a critical success. It acts according to its nature, usually against the party; choose whichever member it would plausibly go after, not always the same one. " +
 		genreRule + " Target entities by id. Keep damage proportional (typically 2 to 10). Output only the JSON."
 	user := fmt.Sprintf("%s\nIt is the turn of the monster: %s (id %s).\nIts action roll (d20): %d\nDecide its action and the outcome.",
 		sceneBrief(st), m.Name, m.ID, roll)

@@ -38,6 +38,7 @@ export function useCrossplay(): CrossplayState {
   const [mySeat, setMySeat] = useState<string | null>(null)
   const [awaitingSeat, setAwaitingSeat] = useState<string | null>(null)
   const mySeatRef = useRef<string | null>(null)
+  const roundRef = useRef(0)
   const nextId = useRef(0)
   const wsRef = useRef<WebSocket | null>(null)
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -75,7 +76,18 @@ export function useCrossplay(): CrossplayState {
             break
           }
           case 'state': {
-            setState(ev.payload as GameState)
+            const st = ev.payload as GameState
+            setState(st)
+            // Mark each new round in the transcript (round 1 starts right after
+            // the opening, so a marker there would just split the intro).
+            if (st.round > roundRef.current) {
+              roundRef.current = st.round
+              if (st.round > 1)
+                setTranscript((t) => [
+                  ...t,
+                  { id: nextId.current++, kind: 'round', round: st.round },
+                ])
+            }
             break
           }
           case 'action': {

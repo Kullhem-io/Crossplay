@@ -112,30 +112,44 @@ func (g *Game) streamNarration(ctx context.Context, msgs []agents.Message) error
 }
 
 // sceneBrief renders the ledger as a compact factual brief for model context:
-// the "hard state" the prose must stay consistent with.
+// the "hard state" the prose must stay consistent with. Every living entity is
+// listed with its id so the DM can target deltas precisely, and the whole party
+// is included (not just the first player) so models see teammates' condition.
 func sceneBrief(st *schema.GameState) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Location: %s, %s\n", st.Location.Name, st.Location.Description)
-	if p := st.Player(); p != nil {
-		fmt.Fprintf(&b, "Player: %s (HP %d/%d)", p.Name, p.HP, p.MaxHP)
-		if p.Desc != "" {
-			fmt.Fprintf(&b, ", %s", p.Desc)
+	if party := st.LivingPlayers(); len(party) > 0 {
+		b.WriteString("The party:\n")
+		for _, p := range party {
+			b.WriteString("  - " + entityBrief(p) + "\n")
 		}
-		if len(p.Inventory) > 0 {
-			var items []string
-			for _, it := range p.Inventory {
-				items = append(items, fmt.Sprintf("%s×%d", it.Name, it.Qty))
-			}
-			fmt.Fprintf(&b, ". Carrying: %s", strings.Join(items, ", "))
-		}
-		b.WriteString("\n")
 	}
-	living := st.LivingMonsters()
-	if len(living) > 0 {
+	if living := st.LivingMonsters(); len(living) > 0 {
 		b.WriteString("Threats present:\n")
 		for _, m := range living {
-			fmt.Fprintf(&b, "  - %s (HP %d/%d), %s\n", m.Name, m.HP, m.MaxHP, m.Desc)
+			b.WriteString("  - " + entityBrief(m) + "\n")
 		}
+	}
+	return b.String()
+}
+
+// entityBrief is one ledger line: name, id, HP, then any soft color (desc,
+// statuses, inventory) the prose should stay consistent with.
+func entityBrief(e *schema.Entity) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s (id %s, HP %d/%d)", e.Name, e.ID, e.HP, e.MaxHP)
+	if e.Desc != "" {
+		fmt.Fprintf(&b, ", %s", e.Desc)
+	}
+	if len(e.Status) > 0 {
+		fmt.Fprintf(&b, ". Status: %s", strings.Join(e.Status, ", "))
+	}
+	if len(e.Inventory) > 0 {
+		var items []string
+		for _, it := range e.Inventory {
+			items = append(items, fmt.Sprintf("%s×%d", it.Name, it.Qty))
+		}
+		fmt.Fprintf(&b, ". Carrying: %s", strings.Join(items, ", "))
 	}
 	return b.String()
 }

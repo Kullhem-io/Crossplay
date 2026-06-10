@@ -25,17 +25,29 @@ export default function App() {
   const myName = mySeat ? state?.entities.find((e) => e.id === mySeat)?.name : undefined
   const myTurn = mySeat != null && awaitingSeat === mySeat
   const scrollRef = useRef<HTMLDivElement>(null)
+  const stickToBottom = useRef(true)
 
   const playerLanes = (state?.entities ?? [])
     .filter((e) => e.kind === 'player')
-    .map((e) => ({ seat: e.id, label: e.name, brain: 'Gemma · high temp' }))
+    .map((e) => ({
+      seat: e.id,
+      label: e.name,
+      brain: e.id === mySeat ? 'You · human' : 'Gemma · high temp',
+    }))
   const lanes = [
     ...FIXED_LANES,
     ...(playerLanes.length ? playerLanes : [{ seat: 'player-1', label: 'Player', brain: 'Gemma · high temp' }]),
   ]
 
+  // Follow the stream, but stop yanking the view down while the reader has
+  // scrolled up into the backlog; resume once they return near the bottom.
+  const onScroll = () => {
+    const el = scrollRef.current
+    if (el) stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+  }
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+    if (stickToBottom.current)
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [transcript])
 
   const onStart = () => topic.trim() && start(topic.trim())
@@ -63,6 +75,7 @@ export default function App() {
       <header className="topbar">
         <h1>Crossplay</h1>
         <div className="topmeta">
+          {started && state!.topic && <span className="topic">{state!.topic}</span>}
           {started && <span className="round">Round {state!.round}</span>}
           <span className={`conn conn-${conn}`}>{conn}</span>
         </div>
@@ -100,7 +113,7 @@ export default function App() {
               <h2>{state!.location.name}</h2>
               <p className="muted">{state!.location.description}</p>
             </div>
-            <article className="narrative" ref={scrollRef}>
+            <article className="narrative" ref={scrollRef} onScroll={onScroll}>
               {transcript.length === 0 ? (
                 <em>The world is taking shape…</em>
               ) : (
@@ -228,11 +241,23 @@ function Beat({ e }: { e: TranscriptEntry }) {
       </p>
     )
   }
+  if (e.kind === 'round') {
+    return (
+      <div className="beat-round">
+        <span>Round {e.round}</span>
+      </div>
+    )
+  }
   if (e.kind === 'mechanics') {
     if (!e.roll && (!e.changes || e.changes.length === 0)) return null
+    const rollClass =
+      e.roll === 20 ? 'mech-roll mech-roll-crit' : e.roll === 1 ? 'mech-roll mech-roll-fumble' : 'mech-roll'
     return (
       <p className="beat-mech">
-        <span className="mech-roll">🎲 {e.roll}</span>
+        <span className={rollClass}>
+          🎲 {e.roll}
+          {e.roll === 20 ? ' · crit!' : e.roll === 1 ? ' · fumble' : ''}
+        </span>
         {e.changes && e.changes.length > 0 && <span className="mech-sep">·</span>}
         {e.changes?.map((c, i) => (
           <span key={i} className="mech-change">
@@ -268,12 +293,26 @@ function Lane({ label, brain, status }: { label: string; brain: string; status?:
 
 function EntityCard({ e }: { e: Entity }) {
   const pct = e.maxHp > 0 ? Math.max(0, Math.round((e.hp / e.maxHp) * 100)) : 0
+  const hpTone = pct <= 25 ? 'hp-danger' : pct <= 55 ? 'hp-worn' : ''
   const isPlayer = e.kind === 'player'
   const xpNext = e.level >= 1 ? e.level * 10 : 10
   const xpPct = Math.max(0, Math.min(100, Math.round((e.xp / xpNext) * 100)))
   const subtitle = [e.class, e.level ? `Lv ${e.level}` : ''].filter(Boolean).join(' · ')
+
+  // Flash the card when HP moves: a red jolt on damage, a green wash on heals.
+  const prevHp = useRef(e.hp)
+  const [flash, setFlash] = useState('')
+  useEffect(() => {
+    const prev = prevHp.current
+    prevHp.current = e.hp
+    if (e.hp === prev) return
+    setFlash(e.hp < prev ? 'ent-flash-hit' : 'ent-flash-heal')
+    const t = setTimeout(() => setFlash(''), 750)
+    return () => clearTimeout(t)
+  }, [e.hp])
+
   return (
-    <div className={`ent ent-${e.kind} ${e.alive ? '' : 'ent-dead'}`}>
+    <div className={`ent ent-${e.kind} ${e.alive ? '' : 'ent-dead'} ${flash}`}>
       <div className="ent-head">
         <span className="ent-name">{e.name}</span>
         <span className="ent-hp">
@@ -282,7 +321,7 @@ function EntityCard({ e }: { e: Entity }) {
       </div>
       {subtitle && <div className="ent-sub">{subtitle}</div>}
       <div className="hpbar">
-        <div className="hpfill" style={{ width: `${pct}%` }} />
+        <div className={`hpfill ${hpTone}`} style={{ width: `${pct}%` }} />
       </div>
       {isPlayer && (
         <>

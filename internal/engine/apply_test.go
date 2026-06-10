@@ -136,6 +136,27 @@ func TestSelfRewardsPinnedToActor(t *testing.T) {
 	}
 }
 
+func TestItemHandoffReachesTeammate(t *testing.T) {
+	p1 := player(20, 20)
+	p1.Inventory = []schema.Item{{Name: "Medkit", Qty: 1}}
+	mara := schema.Entity{ID: "player-2", Name: "Mara", Kind: schema.KindPlayer, Level: 1, HP: 20, MaxHP: 20, Alive: true}
+	g := newTestGame(p1, mara)
+	// The actor hands the medkit over: remove from giver + add to receiver in
+	// one ruling. The add must NOT be pinned back onto the actor.
+	g.applyAdjudication(&schema.Adjudication{Deltas: []schema.Delta{
+		{Type: schema.DeltaItemRemove, Target: SeatPlayer1, Item: "Medkit", Qty: 1},
+		{Type: schema.DeltaItemAdd, Target: "player-2", Item: "Medkit", Qty: 1},
+	}}, SeatPlayer1)
+
+	p1e, p2e := g.state.FindEntity(SeatPlayer1), g.state.FindEntity("player-2")
+	if len(p1e.Inventory) != 0 {
+		t.Fatalf("giver should have lost the item, has %+v", p1e.Inventory)
+	}
+	if len(p2e.Inventory) != 1 || p2e.Inventory[0].Name != "Medkit" {
+		t.Fatalf("receiver should hold the item, has %+v", p2e.Inventory)
+	}
+}
+
 func TestItemCountsStayNonNegative(t *testing.T) {
 	p := player(20, 20)
 	p.Inventory = []schema.Item{{Name: "Potion", Qty: 1}}

@@ -19,6 +19,15 @@
   letter-spacing: 0.06em;
 }
 .topmeta { display: flex; align-items: center; gap: 10px; }
+.topic {
+  font-size: 0.8rem;
+  color: #9aa3b8;
+  font-style: italic;
+  max-width: 420px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .round {
   font-size: 0.74rem;
   color: #8a93a8;
@@ -98,6 +107,20 @@
 .ent-player { border-left-color: #6ee7a8; }
 .ent-monster { border-left-color: #e7746e; }
 .ent-dead { opacity: 0.4; }
+/* HP change flashes: a jolt and red wash on damage, a calm green wash on heals */
+.ent-flash-hit { animation: enthit 0.75s ease-out; }
+@keyframes enthit {
+  0% { background: rgba(231, 116, 110, 0.3); transform: translateX(0); }
+  15% { transform: translateX(-4px); }
+  35% { transform: translateX(4px); }
+  55% { transform: translateX(-2px); }
+  100% { background: #11151f; transform: translateX(0); }
+}
+.ent-flash-heal { animation: entheal 0.75s ease-out; }
+@keyframes entheal {
+  0% { background: rgba(110, 231, 168, 0.24); }
+  100% { background: #11151f; }
+}
 .ent-head { display: flex; justify-content: space-between; align-items: baseline; }
 .ent-name { font-weight: 600; font-size: 0.92rem; }
 .ent-hp { font-size: 0.74rem; color: #8a93a8; font-family: ui-monospace, monospace; }
@@ -119,6 +142,9 @@
   transition: width 0.5s ease;
 }
 .ent-monster .hpfill { background: linear-gradient(90deg, #e7746e, #c9544c); }
+/* Player health shifts color as it drains: green, then amber, then red. */
+.ent-player .hpfill.hp-worn { background: linear-gradient(90deg, #e7c86e, #d4a843); }
+.ent-player .hpfill.hp-danger { background: linear-gradient(90deg, #e7746e, #c9544c); }
 .xpbar {
   margin-top: 4px;
   height: 3px;
@@ -183,7 +209,33 @@
   max-height: 60vh;
   overflow-y: auto;
 }
-.beat-prose { white-space: pre-wrap; margin: 0 0 14px; }
+.beat-prose {
+  white-space: pre-wrap;
+  margin: 0 0 14px;
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-size: 1.04rem;
+  color: #dde2ec;
+}
+
+/* Round divider: a quiet rule between beats so the story has a pulse */
+.beat-round {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 16px;
+  color: #5b6478;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-family: ui-monospace, monospace;
+}
+.beat-round::before,
+.beat-round::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #222838;
+}
 .beat-action {
   margin: 0 0 6px;
   padding-left: 12px;
@@ -214,6 +266,15 @@
   padding: 1px 7px;
   border-radius: 999px;
   font-weight: 600;
+}
+.mech-roll-crit {
+  color: #ffd76e;
+  background: rgba(255, 215, 110, 0.18);
+  box-shadow: 0 0 12px -2px rgba(255, 215, 110, 0.55);
+}
+.mech-roll-fumble {
+  color: #e7746e;
+  background: rgba(231, 116, 110, 0.14);
 }
 .mech-sep { color: #444c5e; }
 .mech-change {

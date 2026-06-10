@@ -43,16 +43,17 @@ export interface MechanicsPayload {
   changes: string[]
 }
 
-// A rendered transcript entry, actions, mechanics, prose, and void whispers
-// interleaved in order.
+// A rendered transcript entry, actions, mechanics, prose, void whispers, and
+// round markers interleaved in order.
 export interface TranscriptEntry {
   id: number
-  kind: 'action' | 'prose' | 'void' | 'mechanics'
+  kind: 'action' | 'prose' | 'void' | 'mechanics' | 'round'
   seat?: string
   name?: string
   text?: string
   roll?: number
   changes?: string[]
+  round?: number
 }
 
 // Client -> server envelope.
